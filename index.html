@@ -660,6 +660,9 @@
       border: 1px solid var(--light-pink);
       scrollbar-width: thin;
       scrollbar-color: var(--rose) transparent;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      transform: translateZ(0);
     }
 
     .photo-grid-scroll-box::-webkit-scrollbar {
@@ -693,6 +696,7 @@
       background: #f8e1eb;
       border: 2px solid var(--white);
       transition: transform 0.25s ease, box-shadow 0.25s ease;
+      transform: translateZ(0);
     }
 
     .grid-photo-item:hover {
@@ -706,6 +710,9 @@
       height: 100%;
       object-fit: cover;
       transition: transform 0.4s ease;
+      will-change: transform;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
     }
 
     .grid-photo-item:hover img {
@@ -1952,6 +1959,15 @@
       renderPhotoGallery();
     }
 
+    // Cloudinary On-The-Fly WebP Thumbnail Optimizer (Fixes scrolling lag & re-downloading)
+    function getOptimizedImageUrl(src, width = 500) {
+      if (!src) return src;
+      if (src.includes('res.cloudinary.com') && src.includes('/upload/')) {
+        return src.replace('/upload/', `/upload/f_auto,q_auto,w_${width},c_limit/`);
+      }
+      return src;
+    }
+
     function renderPhotoGallery() {
       const grid = document.getElementById('photoGrid');
       grid.innerHTML = '';
@@ -1963,16 +1979,17 @@
       }
 
       photoList.forEach((photoItem, index) => {
-        const src = typeof photoItem === 'string' ? photoItem : photoItem.src;
+        const fullSrc = typeof photoItem === 'string' ? photoItem : photoItem.src;
+        const thumbSrc = getOptimizedImageUrl(fullSrc, 500);
 
         const item = document.createElement('div');
         item.className = 'grid-photo-item';
         item.onclick = () => openLightbox(index);
 
         const img = document.createElement('img');
-        img.src = src;
+        img.src = thumbSrc;
         img.alt = `Memory Photo ${index + 1}`;
-        img.loading = 'lazy';
+        img.decoding = 'async';
         img.onerror = () => {
           img.src = `https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=400&q=80`;
         };
@@ -2008,8 +2025,8 @@
 
     function updateLightboxImage() {
       const currentObj = photoList[currentPhotoIndex];
-      const src = typeof currentObj === 'string' ? currentObj : currentObj.src;
-      lightboxImg.src = src;
+      const fullSrc = typeof currentObj === 'string' ? currentObj : currentObj.src;
+      lightboxImg.src = getOptimizedImageUrl(fullSrc, 1200);
     }
 
     const lightboxDeleteBtn = document.getElementById('lightboxDeleteBtn');
