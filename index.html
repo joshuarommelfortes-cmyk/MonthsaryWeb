@@ -1153,6 +1153,57 @@
     .upload-status.loading {
       color: var(--primary-pink);
     }
+
+    /* Photo Card & Lightbox Delete Buttons */
+    .grid-photo-delete-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(211, 47, 47, 0.9);
+      color: #ffffff;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      transition: all 0.2s ease;
+    }
+
+    .grid-photo-delete-btn:hover {
+      transform: scale(1.15);
+      background: #b71c1c;
+    }
+
+    .lightbox-delete-btn {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      background: rgba(211, 47, 47, 0.9);
+      color: #ffffff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 2010;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .lightbox-delete-btn:hover {
+      transform: scale(1.05);
+      background: #b71c1c;
+    }
   </style>
 </head>
 <body>
@@ -1179,6 +1230,7 @@
   <!-- Lightbox Image Preview Modal with Prev/Next Navigation -->
   <div class="lightbox-modal" id="lightboxModal" role="dialog" aria-modal="true" aria-label="Image Preview">
     <button class="lightbox-close" id="lightboxClose" aria-label="Close Preview">✕</button>
+    <button class="lightbox-delete-btn" id="lightboxDeleteBtn" aria-label="Delete Photo">🗑️ Delete</button>
     <button class="lightbox-btn lightbox-prev" id="lightboxPrev" aria-label="Previous Photo">❮</button>
     <button class="lightbox-btn lightbox-next" id="lightboxNext" aria-label="Next Photo">❯</button>
     <div class="lightbox-content">
@@ -1338,8 +1390,8 @@
           <div class="upload-form-group">
             <input type="text" id="imageTitleInput" class="upload-input" placeholder="Memory Title (e.g. Our Date Night ❤️)" />
             <label for="imageFileInput" class="file-select-label">
-              <span id="fileNameDisplay">📸 Choose Photo</span>
-              <input type="file" id="imageFileInput" accept="image/*" class="file-input-hidden" onchange="updateFileNameDisplay()" />
+              <span id="fileNameDisplay">📸 Choose Photo(s)</span>
+              <input type="file" id="imageFileInput" accept="image/*" multiple class="file-input-hidden" onchange="updateFileNameDisplay()" />
             </label>
             <button id="uploadBtn" class="btn btn-primary upload-btn" onclick="handleUploadAndSave()">
               <span>Upload Memory 🚀</span>
@@ -1542,10 +1594,14 @@
     function updateFileNameDisplay() {
       const fileInput = document.getElementById('imageFileInput');
       const displaySpan = document.getElementById('fileNameDisplay');
-      if (fileInput.files && fileInput.files[0]) {
-        displaySpan.textContent = `📷 ${fileInput.files[0].name}`;
+      if (fileInput.files && fileInput.files.length > 0) {
+        if (fileInput.files.length === 1) {
+          displaySpan.textContent = `📷 ${fileInput.files[0].name}`;
+        } else {
+          displaySpan.textContent = `📷 ${fileInput.files.length} Photos Selected`;
+        }
       } else {
-        displaySpan.textContent = '📸 Choose Photo';
+        displaySpan.textContent = '📸 Choose Photo(s)';
       }
     }
 
@@ -1621,50 +1677,109 @@
 
         if (!response.ok) return [];
         const records = await response.json();
-        return records.map(r => r.file_path).filter(Boolean);
+        return records.map(r => ({
+          id: r.id,
+          src: r.file_path,
+          title: r.title,
+          isRemote: true
+        })).filter(r => r.src);
       } catch (err) {
         console.warn('Could not fetch Supabase records:', err);
         return [];
       }
     }
 
-    // 4. Combined Upload & Save Handler
+    // 4. Delete Memory Record Function
+    async function deleteMemoryRecord(photoItem, index, e) {
+      if (e) e.stopPropagation();
+
+      const confirmDelete = confirm('Are you sure you want to delete this photo memory? 🗑️');
+      if (!confirmDelete) return;
+
+      const photoObj = typeof photoItem === 'string' ? { src: photoItem, isRemote: false } : photoItem;
+
+      try {
+        if (photoObj.isRemote) {
+          const deleteUrl = photoObj.id
+            ? `${supabaseConfig.url}/rest/v1/${supabaseConfig.table}?id=eq.${photoObj.id}`
+            : `${supabaseConfig.url}/rest/v1/${supabaseConfig.table}?file_path=eq.${encodeURIComponent(photoObj.src)}`;
+
+          const response = await fetch(deleteUrl, {
+            method: 'DELETE',
+            headers: {
+              'apikey': supabaseConfig.anonKey,
+              'Authorization': `Bearer ${supabaseConfig.anonKey}`
+            }
+          });
+
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Database delete failed: ${errText}`);
+          }
+        }
+
+        photoList.splice(index, 1);
+        closeLightbox();
+        renderPhotoGallery();
+
+        const statusMsg = document.getElementById('uploadStatusMsg');
+        if (statusMsg) {
+          statusMsg.className = 'upload-status success';
+          statusMsg.textContent = '🗑️ Memory deleted successfully!';
+          setTimeout(() => { if (statusMsg.textContent.includes('deleted')) statusMsg.textContent = ''; }, 3500);
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
+        alert(`❌ Delete failed: ${err.message}`);
+      }
+    }
+
+    // 5. Combined Multiple Upload & Save Handler
     async function handleUploadAndSave() {
       const fileInput = document.getElementById('imageFileInput');
       const titleInput = document.getElementById('imageTitleInput');
       const statusMsg = document.getElementById('uploadStatusMsg');
       const uploadBtn = document.getElementById('uploadBtn');
 
-      const file = fileInput.files[0];
-      if (!file) {
+      const files = Array.from(fileInput.files || []);
+      if (files.length === 0) {
         statusMsg.className = 'upload-status error';
-        statusMsg.textContent = 'Please select an image file first!';
+        statusMsg.textContent = 'Please select at least one image file!';
         return;
       }
 
-      const title = titleInput.value.trim() || 'Untitled';
+      const defaultTitle = titleInput.value.trim() || 'Untitled';
+      let successCount = 0;
 
       try {
         uploadBtn.disabled = true;
-        statusMsg.className = 'upload-status loading';
-        statusMsg.textContent = '⏳ Uploading image to Cloudinary...';
 
-        // Step A: Upload to Cloudinary using unsigned preset 'Memories'
-        const secureUrl = await uploadToCloudinary(file);
-        statusMsg.textContent = '💾 Saving memory record to Supabase...';
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const currentTitle = files.length === 1 ? defaultTitle : `${defaultTitle} (${i + 1})`;
 
-        // Step B: Insert into Supabase table (columns: title, file_path)
-        await insertSupabaseMemoryRecord(title, secureUrl);
+          statusMsg.className = 'upload-status loading';
+          statusMsg.textContent = `⏳ Uploading image ${i + 1} of ${files.length}...`;
+
+          // Step A: Upload to Cloudinary using unsigned preset 'Memories'
+          const secureUrl = await uploadToCloudinary(file);
+
+          statusMsg.textContent = `💾 Saving image ${i + 1} of ${files.length} to Supabase...`;
+
+          // Step B: Insert into Supabase table (columns: title, file_path)
+          await insertSupabaseMemoryRecord(currentTitle, secureUrl);
+          successCount++;
+        }
 
         statusMsg.className = 'upload-status success';
-        statusMsg.textContent = '🎉 Memory uploaded and saved successfully!';
+        statusMsg.textContent = `🎉 Successfully uploaded ${successCount} ${successCount === 1 ? 'memory' : 'memories'}!`;
 
         // Reset inputs
         fileInput.value = '';
         titleInput.value = '';
         updateFileNameDisplay();
 
-        // Step C: Refresh gallery immediately with the new uploaded image
+        // Step C: Refresh gallery immediately
         await autoScanPhotosFolder();
 
       } catch (err) {
@@ -1677,7 +1792,7 @@
     }
 
     /* ==========================================================================
-       5. PHOTO GALLERY LOADER (LOCAL + SUPABASE DYNAMIC RECORDS)
+       6. PHOTO GALLERY LOADER (LOCAL + SUPABASE DYNAMIC RECORDS)
        ========================================================================== */
     async function autoScanPhotosFolder() {
       const folder = 'photos/';
@@ -1734,13 +1849,13 @@
         'our-photo-49.jpg'
       ];
 
-      const localList = allPhotos.map(name => folder + name);
+      const localList = allPhotos.map(name => ({ src: folder + name, isRemote: false }));
 
       // Fetch dynamic uploads from Supabase
-      const remoteUrls = await fetchSupabaseMemories();
+      const remoteObjects = await fetchSupabaseMemories();
 
       // Show dynamic Cloudinary/Supabase photos first, then local photos
-      photoList = [...remoteUrls, ...localList];
+      photoList = [...remoteObjects, ...localList];
       renderPhotoGallery();
     }
 
@@ -1749,15 +1864,14 @@
       grid.innerHTML = '';
 
       if (photoList.length === 0) {
-        photoList = [
-          'photos/our-photo.jpg',
-          'photos/our-photo-2.jpg',
-          'photos/our-photo-3.jpg',
-          'photos/our-photo-4.jpg'
-        ];
+        grid.innerHTML = '<p style="color: var(--muted-text); padding: 20px;">No memories found. Upload your first memory above! ✨</p>';
+        document.getElementById('photoCountBadge').textContent = '0 Precious Memories 📸';
+        return;
       }
 
-      photoList.forEach((src, index) => {
+      photoList.forEach((photoItem, index) => {
+        const src = typeof photoItem === 'string' ? photoItem : photoItem.src;
+
         const item = document.createElement('div');
         item.className = 'grid-photo-item';
         item.onclick = () => openLightbox(index);
@@ -1774,8 +1888,16 @@
         overlay.className = 'grid-photo-overlay';
         overlay.textContent = '🔍';
 
+        // Delete Button on top-right of each photo card
+        const delBtn = document.createElement('button');
+        delBtn.className = 'grid-photo-delete-btn';
+        delBtn.innerHTML = '🗑️';
+        delBtn.title = 'Delete Photo';
+        delBtn.onclick = (e) => deleteMemoryRecord(photoItem, index, e);
+
         item.appendChild(img);
         item.appendChild(overlay);
+        item.appendChild(delBtn);
         grid.appendChild(item);
       });
 
@@ -1783,7 +1905,7 @@
     }
 
     /* ==========================================================================
-       5. LIGHTBOX PREVIEW WITH PREV / NEXT NAVIGATION
+       7. LIGHTBOX PREVIEW WITH PREV / NEXT / DELETE NAVIGATION
        ========================================================================== */
     function openLightbox(index) {
       currentPhotoIndex = index;
@@ -1792,7 +1914,18 @@
     }
 
     function updateLightboxImage() {
-      lightboxImg.src = photoList[currentPhotoIndex];
+      const currentObj = photoList[currentPhotoIndex];
+      const src = typeof currentObj === 'string' ? currentObj : currentObj.src;
+      lightboxImg.src = src;
+    }
+
+    const lightboxDeleteBtn = document.getElementById('lightboxDeleteBtn');
+    if (lightboxDeleteBtn) {
+      lightboxDeleteBtn.addEventListener('click', (e) => {
+        if (photoList[currentPhotoIndex]) {
+          deleteMemoryRecord(photoList[currentPhotoIndex], currentPhotoIndex, e);
+        }
+      });
     }
 
     function closeLightbox() {
