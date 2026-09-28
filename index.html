@@ -3087,6 +3087,7 @@
       if (!content) return;
 
       chatInput.value = '';
+      sendStopTypingBroadcast(senderName);
 
       const userId = currentLoggedInUser ? currentLoggedInUser.id : null;
       const senderName = currentLoggedInUser ? currentLoggedInUser.name : 'User';
@@ -3166,27 +3167,52 @@
 
     function handleChatInputTyping() {
       const name = currentLoggedInUser ? currentLoggedInUser.name : 'Someone';
+      const textVal = chatInput ? chatInput.value.trim() : '';
       
-      if (!isCurrentlyTypingBroadcast && chatChannel) {
-        isCurrentlyTypingBroadcast = true;
-        chatChannel.send({
-          type: 'broadcast',
-          event: 'typing',
-          payload: { name: name, isTyping: true }
-        }).catch(e => console.warn('Typing broadcast err:', e));
-      }
-
-      if (typingTimer) clearTimeout(typingTimer);
-      typingTimer = setTimeout(() => {
-        isCurrentlyTypingBroadcast = false;
-        if (chatChannel) {
+      if (textVal.length > 0) {
+        // Broadcast typing = true while text is in input box
+        if (!isCurrentlyTypingBroadcast && chatChannel) {
+          isCurrentlyTypingBroadcast = true;
           chatChannel.send({
             type: 'broadcast',
             event: 'typing',
-            payload: { name: name, isTyping: false }
-          }).catch(e => console.warn('Stop typing broadcast err:', e));
+            payload: { name: name, isTyping: true }
+          }).catch(e => console.warn('Typing broadcast err:', e));
         }
-      }, 1500);
+
+        // Keep-alive timer so typing stays active as long as user is composing text
+        if (typingTimer) clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => {
+          // Re-check if text is still present in text box
+          if (chatInput && chatInput.value.trim().length > 0) {
+            if (chatChannel) {
+              chatChannel.send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: { name: name, isTyping: true }
+              }).catch(e => console.warn('Typing keepalive err:', e));
+            }
+          } else {
+            sendStopTypingBroadcast(name);
+          }
+        }, 3000);
+      } else {
+        // Text box was cleared back to empty
+        if (typingTimer) clearTimeout(typingTimer);
+        sendStopTypingBroadcast(name);
+      }
+    }
+
+    function sendStopTypingBroadcast(senderName) {
+      const name = senderName || (currentLoggedInUser ? currentLoggedInUser.name : 'Someone');
+      isCurrentlyTypingBroadcast = false;
+      if (chatChannel) {
+        chatChannel.send({
+          type: 'broadcast',
+          event: 'typing',
+          payload: { name: name, isTyping: false }
+        }).catch(e => console.warn('Stop typing broadcast err:', e));
+      }
     }
 
     let hideTypingIndicatorTimeout = null;
@@ -3201,7 +3227,7 @@
       if (hideTypingIndicatorTimeout) clearTimeout(hideTypingIndicatorTimeout);
       hideTypingIndicatorTimeout = setTimeout(() => {
         hideTypingDots();
-      }, 3000);
+      }, 5000);
     }
 
     function hideTypingDots() {
