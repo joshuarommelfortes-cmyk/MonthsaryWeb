@@ -124,12 +124,21 @@
       position: relative;
     }
 
-    /* Music Toggle Button */
-    .music-btn {
+    /* Top Floating Navigation Buttons (Music & Logout) */
+    .top-nav-bar {
       position: fixed;
       top: 20px;
       right: 20px;
       z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .music-btn {
+      position: relative;
+      top: 0;
+      right: 0;
       background: var(--glass-bg);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -145,6 +154,30 @@
       align-items: center;
       gap: 8px;
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .logout-btn {
+      display: none;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--rose);
+      padding: 10px 16px;
+      border-radius: 999px;
+      box-shadow: var(--shadow-sm);
+      color: #d32f2f;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .logout-btn:hover {
+      background: #ffebee;
+      transform: scale(1.05);
+      box-shadow: var(--shadow-md);
     }
 
     .music-btn:hover {
@@ -2034,11 +2067,16 @@
   <!-- Dynamic Confetti Canvas -->
   <div id="confettiCanvas"></div>
 
-  <!-- Music Toggle -->
-  <button id="musicToggle" class="music-btn" aria-label="Toggle Background Music">
-    <span class="disc">🎵</span>
-    <span id="musicText">Play Our Song</span>
-  </button>
+  <!-- Top Navigation Controls -->
+  <div class="top-nav-bar">
+    <button id="logoutBtn" class="logout-btn" onclick="handleUserLogout()" aria-label="Logout Account">
+      <span>🚪 Logout (<span id="loggedInUserName">User</span>)</span>
+    </button>
+    <button id="musicToggle" class="music-btn" aria-label="Toggle Background Music">
+      <span class="disc">🎵</span>
+      <span id="musicText">Play Our Song</span>
+    </button>
+  </div>
   <audio id="bgMusic" loop preload="auto">
     <source src="music.mp3" type="audio/mpeg">
   </audio>
@@ -2405,14 +2443,78 @@
     let dodgeCount = 0;
 
     let currentLoggedInUser = null;
-    try { currentLoggedInUser = JSON.parse(sessionStorage.getItem('monthsary_active_user') || 'null'); } catch(e){}
+    try { 
+      // Read persistent login from localStorage so user stays logged in across reloads
+      currentLoggedInUser = JSON.parse(localStorage.getItem('monthsary_active_user') || 'null'); 
+    } catch(e){}
 
     document.addEventListener('DOMContentLoaded', () => {
       initAmbientHearts();
       startLiveCounter();
       autoScanPhotosFolder();
       fetchLoginUsers();
+      updateTopNavUserUI();
+      requestPushNotificationPermission();
     });
+
+    // Update Top Navigation Bar to show active logged-in user name & Logout button
+    function updateTopNavUserUI() {
+      const logoutBtn = document.getElementById('logoutBtn');
+      const userNameSpan = document.getElementById('loggedInUserName');
+
+      if (currentLoggedInUser) {
+        if (userNameSpan) userNameSpan.textContent = currentLoggedInUser.name || 'User';
+        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+        // Auto-skip lock screen if user is already logged in
+        if (screens.lock && screens.lock.classList.contains('active')) {
+          if (isMonthsaryDay()) {
+            showScreen('mail');
+          } else {
+            showScreen('celebrate');
+          }
+        }
+      } else {
+        if (logoutBtn) logoutBtn.style.display = 'none';
+      }
+    }
+
+    // Handle Manual Logout
+    function handleUserLogout() {
+      if (confirm('Are you sure you want to log out? 🚪')) {
+        currentLoggedInUser = null;
+        try {
+          localStorage.removeItem('monthsary_active_user');
+          sessionStorage.removeItem('monthsary_active_user');
+        } catch(e){}
+        updateTopNavUserUI();
+        showScreen('lock');
+      }
+    }
+
+    // Push Notifications API Integration
+    function requestPushNotificationPermission() {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(e => console.warn('Push notification permission error:', e));
+      }
+    }
+
+    function triggerSystemPushNotification(senderName, messageText) {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          const title = `💬 New message from ${senderName || 'Love Chat'}`;
+          const options = {
+            body: messageText || 'Sent a new message! 💖',
+            icon: 'favicon.ico',
+            badge: 'favicon.ico',
+            tag: 'monthsary-chat-msg',
+            renotify: true
+          };
+          new Notification(title, options);
+        } catch (e) {
+          console.warn('System push notification launch err:', e);
+        }
+      }
+    }
 
     // Fetch active non-deleted users from Supabase for passcode login validation
     async function fetchLoginUsers() {
@@ -2487,8 +2589,13 @@
 
       if (matchedUser) {
         currentLoggedInUser = matchedUser;
-        // Save logged in user in sessionStorage
-        try { sessionStorage.setItem('monthsary_active_user', JSON.stringify(matchedUser)); } catch(e){}
+        // Save logged in user in localStorage persistently so user stays logged in across reloads
+        try { 
+          localStorage.setItem('monthsary_active_user', JSON.stringify(matchedUser)); 
+          sessionStorage.setItem('monthsary_active_user', JSON.stringify(matchedUser));
+        } catch(e){}
+
+        updateTopNavUserUI();
 
         // Success PIN for registered user
         createMiniHeartBurst(document.getElementById('pinDots'));
@@ -3902,6 +4009,10 @@
               if (newMsg.content) {
                 spawnFloatingEmojiBurst(newMsg.content);
               }
+
+              // Trigger System Push Notification for incoming live chat message
+              const senderName = newMsg.sender_name || (newMsg.user_id && dynamicUsersList.length ? (dynamicUsersList.find(u => String(u.id) === String(newMsg.user_id))?.name) : 'Love Chat');
+              triggerSystemPushNotification(senderName, newMsg.content);
 
               // Show unread red dot on floating chat icon if chat window is closed
               if (!chatModal.classList.contains('open')) {
