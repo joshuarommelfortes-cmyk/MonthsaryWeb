@@ -1105,10 +1105,10 @@
       opacity: 1;
     }
 
-    /* Swipe Left Indicator Icon */
+    /* Swipe Right Indicator Icon */
     .swipe-reply-icon {
       position: absolute;
-      right: -36px;
+      left: -36px;
       top: 50%;
       transform: translateY(-50%) scale(0.7);
       opacity: 0;
@@ -3381,7 +3381,7 @@
       };
       bubble.appendChild(replyBtn);
 
-      // Swipe Left / Right Gesture Handler for Mobile Touch Devices
+      // Swipe Right Gesture Handler for Mobile Touch Devices
       let touchStartX = 0;
       let touchStartY = 0;
       let currentX = 0;
@@ -3389,7 +3389,7 @@
 
       const swipeIcon = document.createElement('span');
       swipeIcon.className = 'swipe-reply-icon';
-      swipeIcon.textContent = '↩️';
+      swipeIcon.textContent = '↪️';
       bubble.appendChild(swipeIcon);
 
       bubble.addEventListener('touchstart', (e) => {
@@ -3406,12 +3406,12 @@
         const diffX = e.touches[0].clientX - touchStartX;
         const diffY = e.touches[0].clientY - touchStartY;
 
-        // Ensure primary horizontal gesture (swipe left)
-        if (Math.abs(diffX) > Math.abs(diffY) && diffX < 0) {
-          currentX = Math.max(diffX, -60);
+        // Ensure primary horizontal gesture (swipe right)
+        if (Math.abs(diffX) > Math.abs(diffY) && diffX > 0) {
+          currentX = Math.min(diffX, 60);
           bubble.style.transform = `translateX(${currentX}px)`;
 
-          if (currentX < -35) {
+          if (currentX > 35) {
             swipeIcon.classList.add('visible');
           } else {
             swipeIcon.classList.remove('visible');
@@ -3426,7 +3426,7 @@
         bubble.style.transform = 'translateX(0px)';
         swipeIcon.classList.remove('visible');
 
-        if (currentX < -35) {
+        if (currentX > 35) {
           setReplyMode(msg, senderName);
         }
         currentX = 0;
