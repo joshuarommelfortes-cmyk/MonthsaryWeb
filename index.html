@@ -1665,7 +1665,6 @@
         <div class="lock-icon">🔒❤️</div>
         <div class="eyebrow">RESTRICTED LOVE STORY</div>
         <h1 class="heading">Enter Passcode</h1>
-        <p class="description" style="margin-bottom: 12px;">Enter our special anniversary date to unlock ❤️</p>
         
         <!-- PIN Dots Display -->
         <div class="pin-dots-container" id="pinDots">
@@ -1677,7 +1676,7 @@
           <div class="pin-dot"></div>
         </div>
 
-        <div class="pin-error-text" id="pinErrorMsg">Incorrect PIN 🥺 Hint: Our anniversary date!</div>
+        <div class="pin-error-text" id="pinErrorMsg">Incorrect PIN 🥺</div>
 
         <!-- Touch & Click Keypad -->
         <div class="keypad-grid">
@@ -1693,12 +1692,6 @@
           <button class="keypad-btn keypad-btn-action" onclick="clearPin()">C</button>
           <button class="keypad-btn" onclick="pressPin('0')">0</button>
           <button class="keypad-btn keypad-btn-action" onclick="backspacePin()">⌫</button>
-        </div>
-
-        <div style="margin-top: 18px;">
-          <button id="adminTriggerBtn" class="admin-trigger-btn" onclick="openAdminModal()">
-            ⚙️ Super Admin Portal
-          </button>
         </div>
       </div>
     </section>
@@ -2004,12 +1997,34 @@
     let isMusicPlaying = false;
     let dodgeCount = 0;
 
+    let dynamicUsersList = [];
+
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('displayPersonalMsg').textContent = config.personalMessage;
       initAmbientHearts();
       startLiveCounter();
       autoScanPhotosFolder();
+      fetchLoginUsers();
     });
+
+    // Fetch active non-deleted users from Supabase for passcode login validation
+    async function fetchLoginUsers() {
+      try {
+        if (!supabaseConfig.url || supabaseConfig.url.includes('your-project')) return;
+        const url = `${supabaseConfig.url}/rest/v1/users?is_deleted=eq.false&select=*`;
+        const response = await fetch(url, {
+          headers: {
+            'apikey': supabaseConfig.anonKey,
+            'Authorization': `Bearer ${supabaseConfig.anonKey}`
+          }
+        });
+        if (response.ok) {
+          dynamicUsersList = await response.json();
+        }
+      } catch (err) {
+        console.warn('Could not fetch active users for login check:', err);
+      }
+    }
 
     /* ==========================================================================
        3. PIN PASSCODE VERIFICATION LOGIC
@@ -2051,7 +2066,11 @@
     }
 
     function verifyPin() {
-      if (enteredPin === config.correctPin) {
+      // Check default anniversary pincode OR any pincode from active Supabase users
+      const isValidDefault = (enteredPin === config.correctPin);
+      const matchedUser = dynamicUsersList.find(u => String(u.pincode).trim() === enteredPin);
+
+      if (isValidDefault || matchedUser) {
         // Success PIN
         createMiniHeartBurst(document.getElementById('pinDots'));
         triggerConfettiExplosion(20);
@@ -3237,6 +3256,7 @@
         pinInput.value = '';
 
         fetchActiveUsers();
+        fetchLoginUsers();
 
       } catch (err) {
         console.error('Error creating user:', err);
@@ -3267,6 +3287,7 @@
         }
 
         fetchActiveUsers();
+        fetchLoginUsers();
       } catch (err) {
         console.error('Error soft deleting user:', err);
         alert(`❌ Could not soft delete user: ${err.message}`);
