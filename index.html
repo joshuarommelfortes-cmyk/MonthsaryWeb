@@ -1728,28 +1728,6 @@
       </div>
     </section>
 
-    <!-- SCREEN 2: LOVE QUESTION -->
-    <section id="questionScreen" class="screen" aria-live="polite">
-      <div class="card">
-        <div class="eyebrow">ONE VERY IMPORTANT QUESTION</div>
-        <div class="question-box">
-          <h2 class="heading" style="margin-top: 5px;">Ara, do you still love me? 🥺❤️</h2>
-          <p class="description" style="margin-bottom: 6px;">Think carefully, Ara... there is only one correct answer! 😌</p>
-
-          <span class="toast-msg" id="toastMsg">Are you sure? 😭</span>
-
-          <div class="buttons-container" id="questionBox">
-            <button id="yesBtn" class="btn btn-primary" aria-label="Yes, I love you">
-              YES ❤️
-            </button>
-            <button id="noBtn" class="btn btn-secondary" aria-label="No button (playfully moves away)">
-              NO 😭
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- SCREEN 3: HAPPY MONTHSARY & LIVE TIME COUNTER -->
     <section id="celebrateScreen" class="screen" aria-live="polite">
       <div class="card">
@@ -1970,7 +1948,6 @@
     const screens = {
       lock: document.getElementById('lockScreen'),
       mail: document.getElementById('mailScreen'),
-      question: document.getElementById('questionScreen'),
       celebrate: document.getElementById('celebrateScreen'),
       photo: document.getElementById('photoScreen')
     };
@@ -1979,12 +1956,8 @@
     let photoList = [];
 
     const envelopeBtn = document.getElementById('envelopeBtn');
-    const yesBtn = document.getElementById('yesBtn');
-    const noBtn = document.getElementById('noBtn');
     const clickMeBtn = document.getElementById('clickMeBtn');
     const replayBtn = document.getElementById('replayBtn');
-    const toastMsg = document.getElementById('toastMsg');
-    const questionBox = document.getElementById('questionBox');
     
     // Lightbox & Navigation
     const lightboxModal = document.getElementById('lightboxModal');
@@ -2071,6 +2044,11 @@
       });
     }
 
+    function isMonthsaryDay() {
+      const today = new Date();
+      return today.getDate() === 7;
+    }
+
     function verifyPin() {
       // Allow ONLY active users from Supabase `users` table to log in on main keypad
       const matchedUser = dynamicUsersList.find(u => String(u.pincode).trim() === enteredPin);
@@ -2080,7 +2058,12 @@
         createMiniHeartBurst(document.getElementById('pinDots'));
         triggerConfettiExplosion(20);
         setTimeout(() => {
-          showScreen('mail');
+          // Show Mail Screen ONLY on the 7th of the month, otherwise skip directly to celebrate counter
+          if (isMonthsaryDay()) {
+            showScreen('mail');
+          } else {
+            showScreen('celebrate');
+          }
         }, 500);
       } else {
         // Incorrect PIN
@@ -2743,7 +2726,7 @@
     }
 
     /* ==========================================================================
-       8. ENVELOPE & DODGE BUTTON INTERACTION
+       8. ENVELOPE INTERACTION
        ========================================================================== */
     envelopeBtn.addEventListener('click', openEnvelope);
     envelopeBtn.addEventListener('keydown', (e) => {
@@ -2756,42 +2739,9 @@
       createMiniHeartBurst(envelopeBtn);
 
       setTimeout(() => {
-        showScreen('question');
+        showScreen('celebrate');
       }, 900);
     }
-
-    function dodgeNoButton(e) {
-      if (e) e.preventDefault();
-
-      dodgeCount++;
-      const messageIndex = (dodgeCount - 1) % runawayMessages.length;
-      toastMsg.textContent = runawayMessages[messageIndex];
-      toastMsg.classList.add('show');
-
-      const containerRect = questionBox.getBoundingClientRect();
-      const btnRect = noBtn.getBoundingClientRect();
-
-      const availableWidth = Math.max(30, (containerRect.width - btnRect.width) / 2 - 12);
-      const maxX = Math.min(120, availableWidth);
-      const minX = -maxX;
-      const maxY = 45;
-      const minY = -45;
-
-      const randomX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
-      const randomY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
-
-      noBtn.style.transform = `translate(${randomX}px, ${randomY}px)`;
-    }
-
-    noBtn.addEventListener('mouseenter', dodgeNoButton);
-    noBtn.addEventListener('touchstart', dodgeNoButton, { passive: false });
-    noBtn.addEventListener('click', dodgeNoButton);
-
-    yesBtn.addEventListener('click', () => {
-      createMiniHeartBurst(yesBtn);
-      triggerConfettiExplosion();
-      showScreen('celebrate');
-    });
 
     clickMeBtn.addEventListener('click', async () => {
       triggerConfettiExplosion(20);
@@ -2811,11 +2761,12 @@
     });
 
     replayBtn.addEventListener('click', () => {
-      dodgeCount = 0;
-      noBtn.style.transform = 'translate(0, 0)';
-      toastMsg.classList.remove('show');
       envelopeBtn.classList.remove('open');
-      showScreen('mail');
+      if (isMonthsaryDay()) {
+        showScreen('mail');
+      } else {
+        showScreen('celebrate');
+      }
     });
 
     /* ==========================================================================
