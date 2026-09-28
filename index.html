@@ -1059,18 +1059,99 @@
       }
     }
 
-    @media (max-width: 375px) {
-      .responsive-masonry-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .keypad-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 1.15rem;
-      }
-      .heading {
-        font-size: 1.55rem;
-      }
+    /* Cloudinary & Supabase Upload Component Styles */
+    .upload-container {
+      background: linear-gradient(135deg, rgba(255, 240, 245, 0.95), rgba(255, 228, 238, 0.95));
+      border: 1.5px dashed var(--rose);
+      border-radius: 20px;
+      padding: 18px 20px;
+      margin: 15px 0 20px 0;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .upload-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--dark-rose);
+      margin-bottom: 12px;
+    }
+
+    .upload-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+
+    .upload-input {
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1.5px solid var(--light-pink);
+      outline: none;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      background: var(--white);
+      color: var(--text);
+      transition: border-color 0.2s ease;
+    }
+
+    .upload-input:focus {
+      border-color: var(--primary-pink);
+    }
+
+    .file-select-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 999px;
+      background: var(--white);
+      color: var(--dark-rose);
+      border: 1.5px solid var(--rose);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s ease;
+    }
+
+    .file-select-label:hover {
+      background: var(--light-pink);
+    }
+
+    .file-input-hidden {
+      display: none;
+    }
+
+    .upload-btn {
+      width: 100%;
+      padding: 12px 24px;
+      font-size: 0.95rem;
+    }
+
+    .upload-status {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 10px;
+      min-height: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .upload-status.success {
+      color: #2e7d32;
+    }
+
+    .upload-status.error {
+      color: #d32f2f;
+    }
+
+    .upload-status.loading {
+      color: var(--primary-pink);
     }
   </style>
 </head>
@@ -1251,6 +1332,22 @@
           🔍 Tap any photo to expand full size
         </p>
 
+        <!-- Cloudinary & Supabase Image Upload Feature -->
+        <div class="upload-container">
+          <h3 class="upload-title">✨ Add a New Memory</h3>
+          <div class="upload-form-group">
+            <input type="text" id="imageTitleInput" class="upload-input" placeholder="Memory Title (e.g. Our Date Night ❤️)" />
+            <label for="imageFileInput" class="file-select-label">
+              <span id="fileNameDisplay">📸 Choose Photo</span>
+              <input type="file" id="imageFileInput" accept="image/*" class="file-input-hidden" onchange="updateFileNameDisplay()" />
+            </label>
+            <button id="uploadBtn" class="btn btn-primary upload-btn" onclick="handleUploadAndSave()">
+              <span>Upload Memory 🚀</span>
+            </button>
+          </div>
+          <div id="uploadStatusMsg" class="upload-status"></div>
+        </div>
+
         <!-- Scrollable Masonry Photo Grid for All Photos in photos/ Folder -->
         <div class="photo-grid-scroll-box">
           <div class="responsive-masonry-grid" id="photoGrid">
@@ -1292,6 +1389,18 @@
       daughterName: "Elise",
       startDate: new Date("2024-12-07T00:00:00"),
       personalMessage: "Thank you for choosing me, Ara. For the laughs, the little moments, and every memory we keep making together. Here's to forever. 🥰"
+    };
+
+    /* Cloudinary & Supabase API Configuration */
+    const cloudinaryConfig = {
+      cloudName: 'your-cloud-name', // Replace with your Cloudinary Cloud Name (e.g., 'dxy123abc')
+      uploadPreset: 'Memories'      // Unsigned upload preset named "Memories"
+    };
+
+    const supabaseConfig = {
+      url: 'https://your-project.supabase.co', // Replace with your Supabase Project URL (e.g., 'https://xyz.supabase.co')
+      anonKey: 'your-anon-key',               // Replace with your Supabase Anon Public Key
+      table: 'memories'                        // Supabase table with columns: id, title, file_path, created_at
     };
 
     const runawayMessages = [
@@ -1428,12 +1537,151 @@
     });
 
     /* ==========================================================================
-       4. PHOTO GALLERY LOADER (ALL 49 PHOTOS)
+       4. CLOUDINARY UPLOAD & SUPABASE DATABASE INTEGRATION
        ========================================================================== */
-    function autoScanPhotosFolder() {
+    function updateFileNameDisplay() {
+      const fileInput = document.getElementById('imageFileInput');
+      const displaySpan = document.getElementById('fileNameDisplay');
+      if (fileInput.files && fileInput.files[0]) {
+        displaySpan.textContent = `📷 ${fileInput.files[0].name}`;
+      } else {
+        displaySpan.textContent = '📸 Choose Photo';
+      }
+    }
+
+    // 1. Upload direct to Cloudinary using unsigned preset 'Memories'
+    async function uploadToCloudinary(file) {
+      if (!cloudinaryConfig.cloudName || cloudinaryConfig.cloudName === 'your-cloud-name') {
+        throw new Error('Please configure your Cloudinary cloudName in index.html!');
+      }
+
+      const url = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error?.message || `Cloudinary upload failed (Status ${response.status})`);
+      }
+
+      const data = await response.json();
+      return data.secure_url;
+    }
+
+    // 2. Insert record into Supabase table (columns: title, file_path)
+    async function insertSupabaseMemoryRecord(title, secureUrl) {
+      if (!supabaseConfig.url || supabaseConfig.url.includes('your-project')) {
+        console.warn('Supabase not configured yet. Saving locally to gallery.');
+        return;
+      }
+
+      const url = `${supabaseConfig.url}/rest/v1/${supabaseConfig.table}`;
+      const payload = {
+        title: title || 'Untitled',
+        file_path: secureUrl
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseConfig.anonKey,
+          'Authorization': `Bearer ${supabaseConfig.anonKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Supabase insert failed: ${errText}`);
+      }
+
+      return await response.json();
+    }
+
+    // 3. Fetch dynamic records from Supabase table
+    async function fetchSupabaseMemories() {
+      try {
+        if (!supabaseConfig.url || supabaseConfig.url.includes('your-project')) return [];
+
+        const url = `${supabaseConfig.url}/rest/v1/${supabaseConfig.table}?select=*&order=created_at.desc`;
+        const response = await fetch(url, {
+          headers: {
+            'apikey': supabaseConfig.anonKey,
+            'Authorization': `Bearer ${supabaseConfig.anonKey}`
+          }
+        });
+
+        if (!response.ok) return [];
+        const records = await response.json();
+        return records.map(r => r.file_path).filter(Boolean);
+      } catch (err) {
+        console.warn('Could not fetch Supabase records:', err);
+        return [];
+      }
+    }
+
+    // 4. Combined Upload & Save Handler
+    async function handleUploadAndSave() {
+      const fileInput = document.getElementById('imageFileInput');
+      const titleInput = document.getElementById('imageTitleInput');
+      const statusMsg = document.getElementById('uploadStatusMsg');
+      const uploadBtn = document.getElementById('uploadBtn');
+
+      const file = fileInput.files[0];
+      if (!file) {
+        statusMsg.className = 'upload-status error';
+        statusMsg.textContent = 'Please select an image file first!';
+        return;
+      }
+
+      const title = titleInput.value.trim() || 'Untitled';
+
+      try {
+        uploadBtn.disabled = true;
+        statusMsg.className = 'upload-status loading';
+        statusMsg.textContent = '⏳ Uploading image to Cloudinary...';
+
+        // Step A: Upload to Cloudinary using unsigned preset 'Memories'
+        const secureUrl = await uploadToCloudinary(file);
+        statusMsg.textContent = '💾 Saving memory record to Supabase...';
+
+        // Step B: Insert into Supabase table (columns: title, file_path)
+        await insertSupabaseMemoryRecord(title, secureUrl);
+
+        statusMsg.className = 'upload-status success';
+        statusMsg.textContent = '🎉 Memory uploaded and saved successfully!';
+
+        // Reset inputs
+        fileInput.value = '';
+        titleInput.value = '';
+        updateFileNameDisplay();
+
+        // Step C: Refresh gallery immediately with the new uploaded image
+        await autoScanPhotosFolder();
+
+      } catch (err) {
+        console.error('Upload error:', err);
+        statusMsg.className = 'upload-status error';
+        statusMsg.textContent = `❌ ${err.message || 'Upload failed. Please check credentials.'}`;
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    }
+
+    /* ==========================================================================
+       5. PHOTO GALLERY LOADER (LOCAL + SUPABASE DYNAMIC RECORDS)
+       ========================================================================== */
+    async function autoScanPhotosFolder() {
       const folder = 'photos/';
       
-      // All 49 existing photos in the photos/ folder
       const allPhotos = [
         'our-photo.jpg',
         'our-photo-2.jpg',
@@ -1486,7 +1734,13 @@
         'our-photo-49.jpg'
       ];
 
-      photoList = allPhotos.map(name => folder + name);
+      const localList = allPhotos.map(name => folder + name);
+
+      // Fetch dynamic uploads from Supabase
+      const remoteUrls = await fetchSupabaseMemories();
+
+      // Show dynamic Cloudinary/Supabase photos first, then local photos
+      photoList = [...remoteUrls, ...localList];
       renderPhotoGallery();
     }
 
