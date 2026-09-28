@@ -3067,6 +3067,14 @@
         await loadLiveMessages();
         chatInput.focus();
         scrollChatToBottom();
+
+        // Trigger floating emoji effect ONLY for the single latest message if it contains an emoji
+        if (liveMessages && liveMessages.length > 0) {
+          const latestMsg = liveMessages[liveMessages.length - 1];
+          if (latestMsg && latestMsg.content) {
+            spawnFloatingEmojiBurst(latestMsg.content);
+          }
+        }
       }
     });
 
@@ -3175,11 +3183,6 @@
 
       chatMessagesContainer.appendChild(bubble);
 
-      // Trigger floating upward emoji animation for sent/received emojis
-      if (msg.content) {
-        spawnFloatingEmojiBurst(msg.content);
-      }
-
       if (autoScroll) {
         scrollChatToBottom();
       }
@@ -3255,6 +3258,7 @@
       liveMessages.push(localMsg);
       localStorage.setItem('monthsary_local_chat_history', JSON.stringify(liveMessages));
       appendSingleChatMessage(localMsg, true);
+      spawnFloatingEmojiBurst(content);
 
       // Save to Supabase table 'messages' (columns: id, content, created_at, user_id)
       try {
@@ -3420,6 +3424,9 @@
             if (!isAlreadyAdded) {
               liveMessages.push(newMsg);
               appendSingleChatMessage(newMsg, true);
+              if (newMsg.content) {
+                spawnFloatingEmojiBurst(newMsg.content);
+              }
 
               // Show unread red dot on floating chat icon if chat window is closed
               if (!chatModal.classList.contains('open')) {
