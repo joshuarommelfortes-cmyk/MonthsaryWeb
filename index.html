@@ -1984,7 +1984,8 @@
     let isMusicPlaying = false;
     let dodgeCount = 0;
 
-    let dynamicUsersList = [];
+    let currentLoggedInUser = null;
+    try { currentLoggedInUser = JSON.parse(sessionStorage.getItem('monthsary_active_user') || 'null'); } catch(e){}
 
     document.addEventListener('DOMContentLoaded', () => {
       initAmbientHearts();
@@ -2056,14 +2057,19 @@
       return today.getDate() === 7;
     }
 
-    let currentLoggedInUser = null;
-
     function verifyPin() {
-      // Allow ONLY active users from Supabase `users` table to log in on main keypad
-      const matchedUser = dynamicUsersList.find(u => String(u.pincode).trim() === enteredPin);
+      // Find matching user from active Supabase `users` table or default anniversary config
+      let matchedUser = dynamicUsersList.find(u => String(u.pincode).trim() === enteredPin);
+
+      if (!matchedUser && enteredPin === config.correctPin) {
+        matchedUser = { id: null, name: config.partnerName || 'Joshua', pincode: config.correctPin };
+      }
 
       if (matchedUser) {
         currentLoggedInUser = matchedUser;
+        // Save logged in user in sessionStorage
+        try { sessionStorage.setItem('monthsary_active_user', JSON.stringify(matchedUser)); } catch(e){}
+
         // Success PIN for registered user
         createMiniHeartBurst(document.getElementById('pinDots'));
         triggerConfettiExplosion(20);
