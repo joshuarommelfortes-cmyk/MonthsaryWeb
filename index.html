@@ -3528,46 +3528,46 @@
           const payload = {
             content: content
           };
-          
+
+          if (replyInfo) {
+            payload.reply_sender = replyInfo.sender_name;
+            payload.reply_text = replyInfo.content;
+          }
+
           if (userId && isValidUuid(userId)) {
             payload.user_id = userId;
           }
 
-          const res = await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
-            method: 'POST',
-            headers: {
-              'apikey': supabaseConfig.anonKey,
-              'Authorization': `Bearer ${supabaseConfig.anonKey}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(payload)
-          });
+          const sendPost = async (bodyObj) => {
+            return await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
+              method: 'POST',
+              headers: {
+                'apikey': supabaseConfig.anonKey,
+                'Authorization': `Bearer ${supabaseConfig.anonKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify(bodyObj)
+            });
+          };
+
+          let res = await sendPost(payload);
 
           if (!res.ok) {
             const errText = await res.text();
-            console.error('Supabase message insert error:', res.status, errText);
+            console.warn('Supabase message insert initial error:', res.status, errText);
 
-            // Retry without user_id if payload included user_id and failed
-            if (payload.user_id) {
-              const retryRes = await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
-                method: 'POST',
-                headers: {
-                  'apikey': supabaseConfig.anonKey,
-                  'Authorization': `Bearer ${supabaseConfig.anonKey}`,
-                  'Content-Type': 'application/json',
-                  'Prefer': 'return=representation'
-                },
-                body: JSON.stringify({ content: content })
-              });
-              if (retryRes.ok) {
-                console.log('Successfully saved message to Supabase (without user_id)!');
-              } else {
-                console.error('Retry save failed:', retryRes.status, await retryRes.text());
-              }
+            // Retry without reply details if schema doesn't have reply columns yet
+            delete payload.reply_sender;
+            delete payload.reply_text;
+            res = await sendPost(payload);
+
+            if (!res.ok && payload.user_id) {
+              delete payload.user_id;
+              await sendPost(payload);
             }
           } else {
-            console.log('Successfully saved message to Supabase!');
+            console.log('Successfully saved message with reply details to Supabase!');
           }
         }
       } catch (err) {
