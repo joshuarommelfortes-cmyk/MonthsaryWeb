@@ -3158,11 +3158,11 @@
       const content = chatInput.value.trim();
       if (!content) return;
 
-      chatInput.value = '';
-      sendStopTypingBroadcast(senderName);
-
       const userId = currentLoggedInUser ? currentLoggedInUser.id : null;
       const senderName = currentLoggedInUser ? currentLoggedInUser.name : 'User';
+
+      chatInput.value = '';
+      sendStopTypingBroadcast(senderName);
 
       const localMsg = {
         id: crypto.randomUUID ? crypto.randomUUID() : 'msg-' + Date.now(),
