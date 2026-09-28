@@ -45,14 +45,16 @@
       min-height: 100dvh;
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
       overflow-x: hidden;
+      overflow-y: auto;
       position: relative;
-      padding: 16px 0;
-      padding-top: max(16px, env(safe-area-inset-top));
-      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      padding: 24px 0;
+      padding-top: max(24px, env(safe-area-inset-top));
+      padding-bottom: max(36px, env(safe-area-inset-bottom));
       padding-left: max(0px, env(safe-area-inset-left));
       padding-right: max(0px, env(safe-area-inset-right));
+      -webkit-overflow-scrolling: touch;
     }
 
     /* Ambient Animated Background */
@@ -191,29 +193,14 @@
       text-align: center;
       box-shadow: 0 16px 45px rgba(141, 41, 79, 0.07);
       position: relative;
-      max-height: 90vh;
-      max-height: 90dvh;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: var(--rose) transparent;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-      transform: translate3d(0, 0, 0);
-    }
-
-    .card::-webkit-scrollbar {
-      width: 6px;
-    }
-    .card::-webkit-scrollbar-thumb {
-      background-color: var(--rose);
-      border-radius: 10px;
+      width: 100%;
+      margin: 0 auto;
     }
 
     @media (max-width: 480px) {
       .card {
         padding: 24px 14px;
         border-radius: 24px;
-        max-height: calc(100dvh - 24px);
       }
     }
 
@@ -646,27 +633,10 @@
     }
 
     .photo-grid-scroll-box {
-      max-height: 55vh;
-      overflow-y: auto;
-      padding: 10px;
-      margin: 10px 0 20px 0;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.85);
-      border: 1.5px solid var(--light-pink);
-      scrollbar-width: thin;
-      scrollbar-color: var(--rose) transparent;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
-      overscroll-behavior: contain;
-      transform: translate3d(0, 0, 0);
-    }
-
-    .photo-grid-scroll-box::-webkit-scrollbar {
-      width: 6px;
-    }
-    .photo-grid-scroll-box::-webkit-scrollbar-thumb {
-      background-color: var(--rose);
-      border-radius: 10px;
+      margin: 15px 0 20px 0;
+      padding: 0;
+      background: transparent;
+      border: none;
     }
 
     .responsive-masonry-grid {
