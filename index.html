@@ -1247,33 +1247,37 @@
       animation: fallAndFade linear forwards;
     }
 
-    /* Floating Upward Emoji Burst Effect for Chat Messages */
+    /* Fullscreen Upward Floating Emoji Burst Effect for Chat Messages */
     .chat-floating-emoji {
       position: fixed;
       pointer-events: none;
-      z-index: 4000;
-      font-size: 1.8rem;
+      z-index: 5000;
       user-select: none;
-      animation: floatUpAndFade 2.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+      animation: floatUpAndFade 3.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+      filter: drop-shadow(0 4px 12px rgba(255, 79, 134, 0.3));
+      will-change: transform, opacity;
     }
 
     @keyframes floatUpAndFade {
       0% {
-        opacity: 1;
-        transform: translateY(0) scale(0.6) rotate(0deg);
+        opacity: 0;
+        transform: translateY(0) scale(0.4) rotate(0deg);
       }
-      30% {
+      15% {
         opacity: 1;
-        transform: translateY(-80px) scale(1.2) rotate(12deg);
+        transform: translateY(-15vh) scale(1.3) rotate(15deg);
       }
-      70% {
-        opacity: 0.8;
-        transform: translateY(-200px) scale(1.1) rotate(-12deg);
+      50% {
+        opacity: 0.95;
+        transform: translateY(-50vh) scale(1.1) rotate(-15deg);
+      }
+      80% {
+        opacity: 0.7;
+        transform: translateY(-80vh) scale(0.95) rotate(20deg);
       }
       100% {
         opacity: 0;
-        transform: translateY(-320px) scale(0.7) rotate(20deg);
+        transform: translateY(-105vh) scale(0.6) rotate(-25deg);
       }
     }
 
@@ -3173,7 +3177,7 @@
 
       // Trigger floating upward emoji animation for sent/received emojis
       if (msg.content) {
-        spawnFloatingEmojiBurst(msg.content, bubble);
+        spawnFloatingEmojiBurst(msg.content);
       }
 
       if (autoScroll) {
@@ -3181,44 +3185,42 @@
       }
     }
 
-    // Floating Upward Emoji Particle Engine
-    function spawnFloatingEmojiBurst(text, sourceElement) {
-      // Regex pattern to extract Unicode emojis
+    // Fullscreen Floating Upward Emoji Particle Engine (Fires ONLY for the latest/last sent emoji)
+    function spawnFloatingEmojiBurst(text) {
+      if (!text) return;
+      
+      // Extract all Unicode emojis from the message text
       const emojiRegex = /[\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
       const extractedEmojis = text.match(emojiRegex);
       
-      const emojisToSpawn = extractedEmojis && extractedEmojis.length > 0 
-        ? extractedEmojis 
-        : (text.includes('❤️') || text.includes('💖') ? ['💖', '❤️'] : []);
+      // Get ONLY the latest / last sent emoji in the text
+      const targetEmoji = extractedEmojis && extractedEmojis.length > 0 
+        ? extractedEmojis[extractedEmojis.length - 1] 
+        : (text.includes('❤️') || text.includes('💖') ? '💖' : null);
 
-      if (emojisToSpawn.length === 0) return;
+      if (!targetEmoji) return;
 
-      const rect = sourceElement ? sourceElement.getBoundingClientRect() : { left: window.innerWidth / 2, top: window.innerHeight - 100, width: 60 };
-      const startX = rect.left + (rect.width / 2);
-      const startY = rect.top;
-
-      // Spawn 4-8 floating emoji particles rising from the bottom to top
-      const particleCount = Math.min(emojisToSpawn.length * 2, 8);
+      // Spawn 18-28 floating emoji particles randomly across the entire width of the screen rising from bottom to top
+      const particleCount = 24;
       for (let i = 0; i < particleCount; i++) {
         setTimeout(() => {
           const particle = document.createElement('div');
           particle.className = 'chat-floating-emoji';
-          const randomEmoji = emojisToSpawn[Math.floor(Math.random() * emojisToSpawn.length)];
-          particle.textContent = randomEmoji;
+          particle.textContent = targetEmoji;
 
-          // Add random horizontal offset and size variation
-          const offsetX = (Math.random() - 0.5) * 80;
-          particle.style.left = `${startX + offsetX}px`;
-          particle.style.top = `${startY}px`;
-          particle.style.fontSize = `${1.5 + Math.random() * 0.8}rem`;
-          particle.style.animationDuration = `${1.8 + Math.random() * 0.8}s`;
+          // Spread starting horizontal position across full screen width (5vw to 95vw)
+          const startX = 5 + Math.random() * 90;
+          particle.style.left = `${startX}vw`;
+          particle.style.bottom = `-50px`;
+          particle.style.fontSize = `${1.6 + Math.random() * 1.5}rem`;
+          particle.style.animationDuration = `${2.8 + Math.random() * 1.4}s`;
 
           document.body.appendChild(particle);
 
           setTimeout(() => {
             particle.remove();
-          }, 2600);
-        }, i * 150);
+          }, 4200);
+        }, i * 90);
       }
     }
 
