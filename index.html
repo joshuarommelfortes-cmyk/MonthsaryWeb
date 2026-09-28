@@ -1428,55 +1428,65 @@
     });
 
     /* ==========================================================================
-       4. AUTO-SCANNER FOR `photos/` FOLDER IMAGES
+       4. PHOTO GALLERY LOADER (ALL 49 PHOTOS)
        ========================================================================== */
-    async function autoScanPhotosFolder() {
+    function autoScanPhotosFolder() {
       const folder = 'photos/';
-      const foundSet = new Set();
       
-      // Known default files in photos/
-      const defaultFiles = [
+      // All 49 existing photos in the photos/ folder
+      const allPhotos = [
         'our-photo.jpg',
         'our-photo-2.jpg',
         'our-photo-3.jpg',
         'our-photo-4.jpg',
         'our-photo-5.jpg',
-        'our-photo-6.jpg'
+        'our-photo-6.jpg',
+        'our-photo-7.jpg',
+        'our-photo-8.jpg',
+        'our-photo-9.jpg',
+        'our-photo-10.jpg',
+        'our-photo-11.jpg',
+        'our-photo-12.jpg',
+        'our-photo-13.jpg',
+        'our-photo-14.jpg',
+        'our-photo-15.jpg',
+        'our-photo-16.jpg',
+        'our-photo-17.jpg',
+        'our-photo-18.jpg',
+        'our-photo-19.jpg',
+        'our-photo-20.jpg',
+        'our-photo-21.jpg',
+        'our-photo-22.jpg',
+        'our-photo-23.jpg',
+        'our-photo-24.jpg',
+        'our-photo-25.jpg',
+        'our-photo-26.jpg',
+        'our-photo-27.jpg',
+        'our-photo-28.jpg',
+        'our-photo-29.jpg',
+        'our-photo-30.jpg',
+        'our-photo-31.jpg',
+        'our-photo-32.jpg',
+        'our-photo-33.jpg',
+        'our-photo-34.jpg',
+        'our-photo-35.jpg',
+        'our-photo-364.jpg',
+        'our-photo-37.jpg',
+        'our-photo-38.jpg',
+        'our-photo-39.jpg',
+        'our-photo-40.jpg',
+        'our-photo-41.jpg',
+        'our-photo-42.jpg',
+        'our-photo-43.jpg',
+        'our-photo-44.jpg',
+        'our-photo-45.jpg',
+        'our-photo-46.jpg',
+        'our-photo-47.jpg',
+        'our-photo-48.jpg',
+        'our-photo-49.jpg'
       ];
 
-      // Probing candidates generator up to 150+ photos
-      const candidateList = [];
-      defaultFiles.forEach(f => candidateList.push(folder + f));
-
-      for (let i = 1; i <= 150; i++) {
-        candidateList.push(`${folder}our-photo-${i}.jpg`);
-        candidateList.push(`${folder}our-photo${i}.jpg`);
-        candidateList.push(`${folder}photo-${i}.jpg`);
-        candidateList.push(`${folder}photo${i}.jpg`);
-        candidateList.push(`${folder}${i}.jpg`);
-        candidateList.push(`${folder}${i}.jpeg`);
-        candidateList.push(`${folder}${i}.png`);
-        candidateList.push(`${folder}${i}.webp`);
-      }
-
-      // Concurrently probe images using Image object
-      const probePromises = candidateList.map(src => {
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => resolve(src);
-          img.onerror = () => resolve(null);
-          img.src = src;
-        });
-      });
-
-      const results = await Promise.all(probePromises);
-      results.forEach(res => {
-        if (res && !foundSet.has(res)) {
-          foundSet.add(res);
-        }
-      });
-
-      photoList = Array.from(foundSet);
+      photoList = allPhotos.map(name => folder + name);
       renderPhotoGallery();
     }
 
