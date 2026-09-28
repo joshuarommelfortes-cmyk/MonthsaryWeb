@@ -1734,7 +1734,67 @@
       }
     }
 
-    // 5. Combined Multiple Upload & Save Handler
+    // Auto-compress & downscale large photos before upload (under 10MB limit)
+    async function compressAndResizeImage(file, maxDimension = 1920, quality = 0.85) {
+      // If file is already under 2.5MB, no compression needed
+      if (file.size <= 2.5 * 1024 * 1024) {
+        return file;
+      }
+
+      return new Promise((resolve) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const resizedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                  type: 'image/jpeg',
+                  lastModified: Date.now()
+                });
+                resolve(resizedFile);
+              } else {
+                resolve(file);
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve(file);
+        };
+
+        img.src = url;
+      });
+    }
+
+    // 5. Combined Multiple Upload & Save Handler with Auto-Compression & Error Skipping
     async function handleUploadAndSave() {
       const fileInput = document.getElementById('imageFileInput');
       const titleInput = document.getElementById('imageTitleInput');
@@ -1750,42 +1810,66 @@
 
       const defaultTitle = titleInput.value.trim() || 'Untitled';
       let successCount = 0;
+      let skippedCount = 0;
+      const skippedNames = [];
 
       try {
         uploadBtn.disabled = true;
 
         for (let i = 0; i < files.length; i++) {
-          const file = files[i];
+          let file = files[i];
           const currentTitle = files.length === 1 ? defaultTitle : `${defaultTitle} (${i + 1})`;
 
-          statusMsg.className = 'upload-status loading';
-          statusMsg.textContent = `⏳ Uploading image ${i + 1} of ${files.length}...`;
+          try {
+            statusMsg.className = 'upload-status loading';
+            statusMsg.textContent = `⚡ Auto-compressing image ${i + 1} of ${files.length} (${file.name})...`;
 
-          // Step A: Upload to Cloudinary using unsigned preset 'Memories'
-          const secureUrl = await uploadToCloudinary(file);
+            // Step A: Auto-compress & downscale image if large
+            file = await compressAndResizeImage(file);
 
-          statusMsg.textContent = `💾 Saving image ${i + 1} of ${files.length} to Supabase...`;
+            statusMsg.textContent = `⏳ Uploading image ${i + 1} of ${files.length} to Cloudinary...`;
 
-          // Step B: Insert into Supabase table (columns: title, file_path)
-          await insertSupabaseMemoryRecord(currentTitle, secureUrl);
-          successCount++;
+            // Step B: Upload to Cloudinary using unsigned preset 'Memories'
+            const secureUrl = await uploadToCloudinary(file);
+
+            statusMsg.textContent = `💾 Saving image ${i + 1} of ${files.length} to Supabase...`;
+
+            // Step C: Insert into Supabase table (columns: title, file_path)
+            await insertSupabaseMemoryRecord(currentTitle, secureUrl);
+            successCount++;
+
+          } catch (fileErr) {
+            console.warn(`Error uploading file ${file.name}:`, fileErr);
+            skippedCount++;
+            skippedNames.push(file.name);
+            // Continue uploading remaining files without stopping!
+          }
         }
 
-        statusMsg.className = 'upload-status success';
-        statusMsg.textContent = `🎉 Successfully uploaded ${successCount} ${successCount === 1 ? 'memory' : 'memories'}!`;
+        if (successCount > 0) {
+          statusMsg.className = 'upload-status success';
+          if (skippedCount > 0) {
+            statusMsg.textContent = `🎉 Uploaded ${successCount} ${successCount === 1 ? 'memory' : 'memories'}! (${skippedCount} skipped: ${skippedNames.join(', ')})`;
+          } else {
+            statusMsg.textContent = `🎉 Successfully uploaded all ${successCount} ${successCount === 1 ? 'memory' : 'memories'}!`;
+          }
+        } else {
+          statusMsg.className = 'upload-status error';
+          statusMsg.textContent = `❌ Upload failed for all selected files. (${skippedNames.join(', ')})`;
+        }
 
         // Reset inputs
         fileInput.value = '';
         titleInput.value = '';
         updateFileNameDisplay();
 
-        // Step C: Refresh gallery immediately
+        // Step D: Refresh gallery immediately
         await autoScanPhotosFolder();
 
       } catch (err) {
-        console.error('Upload error:', err);
+        console.error('Batch upload error:', err);
         statusMsg.className = 'upload-status error';
-        statusMsg.textContent = `❌ ${err.message || 'Upload failed. Please check credentials.'}`;
+        statusMsg.textContent = `❌ ${err.message || 'Upload failed.'}`;
       } finally {
         uploadBtn.disabled = false;
       }
