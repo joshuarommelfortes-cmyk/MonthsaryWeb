@@ -1859,18 +1859,21 @@
       color: var(--primary-pink);
     }
 
-    /* Photo Card & Lightbox Delete Buttons */
-    .grid-photo-delete-btn {
+    /* Photo Card 3-Dots Options Menu & Dropdown Tray */
+    .grid-photo-menu-btn {
       position: absolute;
       top: 6px;
       right: 6px;
-      background: rgba(211, 47, 47, 0.9);
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
       color: #ffffff;
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.4);
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      font-size: 0.8rem;
+      font-size: 0.95rem;
+      font-weight: bold;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1878,11 +1881,63 @@
       z-index: 10;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       transition: all 0.2s ease;
+      line-height: 1;
     }
 
-    .grid-photo-delete-btn:hover {
-      transform: scale(1.15);
-      background: #b71c1c;
+    .grid-photo-menu-btn:hover {
+      transform: scale(1.1);
+      background: rgba(141, 41, 79, 0.85);
+    }
+
+    .grid-photo-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 38px;
+      right: 6px;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1.5px solid var(--light-pink);
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      z-index: 20;
+      overflow: hidden;
+      flex-direction: column;
+      min-width: 120px;
+      animation: popIn 0.2s ease-out;
+    }
+
+    .grid-photo-dropdown-menu.show {
+      display: flex;
+    }
+
+    .grid-photo-dropdown-item {
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      background: transparent;
+      border: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .grid-photo-dropdown-item:hover {
+      background: #FFEBF2;
+    }
+
+    .grid-photo-dropdown-item.delete {
+      color: #d32f2f;
+      border-top: 1px solid var(--light-pink);
+    }
+
+    .grid-photo-dropdown-item.delete:hover {
+      background: #ffebee;
     }
 
     .lightbox-delete-btn {
@@ -2884,20 +2939,89 @@
         overlay.className = 'grid-photo-overlay';
         overlay.textContent = '🔍';
 
-        // Delete Button on top-right of each photo card
-        const delBtn = document.createElement('button');
-        delBtn.className = 'grid-photo-delete-btn';
-        delBtn.innerHTML = '🗑️';
-        delBtn.title = 'Delete Photo';
-        delBtn.onclick = (e) => deleteMemoryRecord(photoItem, index, e);
+        // 3-Dots Options Button on top-right of each photo card
+        const menuBtn = document.createElement('button');
+        menuBtn.type = 'button';
+        menuBtn.className = 'grid-photo-menu-btn';
+        menuBtn.innerHTML = '⋮';
+        menuBtn.title = 'Photo Options';
+
+        // Dropdown Menu Container
+        const dropdown = document.createElement('div');
+        dropdown.className = 'grid-photo-dropdown-menu';
+
+        // Option 1: Download Image
+        const downloadOpt = document.createElement('button');
+        downloadOpt.type = 'button';
+        downloadOpt.className = 'grid-photo-dropdown-item';
+        downloadOpt.innerHTML = '<span>📥</span> Download';
+        downloadOpt.onclick = (e) => {
+          e.stopPropagation();
+          dropdown.classList.remove('show');
+          downloadPhotoMemory(fullSrc, photoItem.title || `Memory_${index + 1}`);
+        };
+
+        // Option 2: Delete Image
+        const deleteOpt = document.createElement('button');
+        deleteOpt.type = 'button';
+        deleteOpt.className = 'grid-photo-dropdown-item delete';
+        deleteOpt.innerHTML = '<span>🗑️</span> Delete';
+        deleteOpt.onclick = (e) => {
+          e.stopPropagation();
+          dropdown.classList.remove('show');
+          deleteMemoryRecord(photoItem, index, e);
+        };
+
+        dropdown.appendChild(downloadOpt);
+        dropdown.appendChild(deleteOpt);
+
+        menuBtn.onclick = (e) => {
+          e.stopPropagation();
+          // Close all other open dropdown menus first
+          document.querySelectorAll('.grid-photo-dropdown-menu.show').forEach(m => {
+            if (m !== dropdown) m.classList.remove('show');
+          });
+          dropdown.classList.toggle('show');
+        };
 
         item.appendChild(img);
         item.appendChild(overlay);
-        item.appendChild(delBtn);
+        item.appendChild(menuBtn);
+        item.appendChild(dropdown);
         grid.appendChild(item);
       });
 
+      // Close dropdowns if clicking anywhere outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.grid-photo-menu-btn') && !e.target.closest('.grid-photo-dropdown-menu')) {
+          document.querySelectorAll('.grid-photo-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+        }
+      });
+
       document.getElementById('photoCountBadge').textContent = `${photoList.length} Precious Memories 📸`;
+    }
+
+    // Photo Helper Function: Download Memory Image
+    async function downloadPhotoMemory(url, filename) {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = (filename || 'Memory') + '.jpg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        console.warn('Direct blob download fallback:', err);
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.download = (filename || 'Memory') + '.jpg';
+        a.click();
+      }
     }
 
     /* ==========================================================================
