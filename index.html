@@ -931,13 +931,21 @@
 
     .floating-chat-toggle .chat-badge {
       position: absolute;
-      top: -3px;
-      right: -3px;
-      background: #00e676;
+      top: -2px;
+      right: -2px;
+      background: #ff1744;
       border: 2px solid var(--white);
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
+      display: none;
+      box-shadow: 0 0 10px rgba(255, 23, 68, 0.8);
+      animation: pulseBadge 1.5s infinite ease-in-out;
+    }
+
+    @keyframes pulseBadge {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.25); }
     }
 
     /* Chat Window Sliding Modal */
@@ -1027,6 +1035,18 @@
       word-wrap: break-word;
       animation: popIn 0.25s ease-out;
       position: relative;
+    }
+
+    .chat-message-sender {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--primary-pink);
+      margin-bottom: 3px;
+    }
+
+    .chat-message-bubble.outgoing .chat-message-sender {
+      color: var(--white);
+      opacity: 0.9;
     }
 
     .chat-message-bubble.incoming {
@@ -2036,11 +2056,14 @@
       return today.getDate() === 7;
     }
 
+    let currentLoggedInUser = null;
+
     function verifyPin() {
       // Allow ONLY active users from Supabase `users` table to log in on main keypad
       const matchedUser = dynamicUsersList.find(u => String(u.pincode).trim() === enteredPin);
 
       if (matchedUser) {
+        currentLoggedInUser = matchedUser;
         // Success PIN for registered user
         createMiniHeartBurst(document.getElementById('pinDots'));
         triggerConfettiExplosion(20);
@@ -2862,6 +2885,9 @@
     chatToggleBtn.addEventListener('click', () => {
       chatModal.classList.toggle('open');
       if (chatModal.classList.contains('open')) {
+        // Clear unread red dot when opened
+        const badge = chatToggleBtn.querySelector('.chat-badge');
+        if (badge) badge.style.display = 'none';
         chatInput.focus();
         scrollChatToBottom();
       }
@@ -2929,9 +2955,17 @@
       if (existingHint) existingHint.remove();
 
       const bubble = document.createElement('div');
-      // Simple logic: if message was created within last 2 seconds from current browser session, mark outgoing
-      const isMyMessage = msg._isLocal || (Date.now() - new Date(msg.created_at).getTime() < 3000);
+
+      const senderName = msg.sender_name || (msg._isLocal && currentLoggedInUser ? currentLoggedInUser.name : 'Anonymous');
+      const isMyMessage = msg._isLocal || (currentLoggedInUser && msg.sender_name === currentLoggedInUser.name);
+
       bubble.className = `chat-message-bubble ${isMyMessage ? 'outgoing' : 'incoming'}`;
+
+      // Sender Name element above bubble text
+      const senderNode = document.createElement('div');
+      senderNode.className = 'chat-message-sender';
+      senderNode.textContent = senderName;
+      bubble.appendChild(senderNode);
 
       const textNode = document.createElement('div');
       textNode.textContent = msg.content;
@@ -2966,8 +3000,11 @@
 
       chatInput.value = '';
 
+      const senderName = currentLoggedInUser ? currentLoggedInUser.name : 'User';
+
       const localMsg = {
         id: crypto.randomUUID ? crypto.randomUUID() : 'temp-' + Date.now(),
+        sender_name: senderName,
         content: content,
         created_at: new Date().toISOString(),
         _isLocal: true
@@ -2977,7 +3014,7 @@
       liveMessages.push(localMsg);
       appendSingleChatMessage(localMsg, true);
 
-      // Save to Supabase table 'messages'
+      // Save to Supabase table 'messages' with sender_name column
       try {
         if (supabaseConfig.url && !supabaseConfig.url.includes('your-project')) {
           await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
@@ -2989,6 +3026,7 @@
               'Prefer': 'return=representation'
             },
             body: JSON.stringify({
+              sender_name: senderName,
               content: content
             })
           });
@@ -3012,6 +3050,12 @@
             if (!isAlreadyAdded) {
               liveMessages.push(newMsg);
               appendSingleChatMessage(newMsg, true);
+
+              // Show unread red dot on floating chat icon if chat window is closed
+              if (!chatModal.classList.contains('open')) {
+                const badge = chatToggleBtn.querySelector('.chat-badge');
+                if (badge) badge.style.display = 'block';
+              }
             }
           })
           .subscribe((status) => {
