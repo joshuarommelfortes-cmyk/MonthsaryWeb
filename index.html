@@ -853,6 +853,55 @@
       font-weight: 700;
     }
 
+    /* Global Site Footer Styles */
+    .site-footer {
+      width: 100%;
+      max-width: 780px;
+      margin: 30px auto 10px auto;
+      padding: 0 20px;
+      position: relative;
+      z-index: 10;
+      text-align: center;
+    }
+
+    .footer-card {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1.5px solid rgba(255, 216, 229, 0.9);
+      border-radius: 28px;
+      padding: 24px 20px;
+      box-shadow: 0 10px 30px rgba(141, 41, 79, 0.08);
+      position: relative;
+    }
+
+    .footer-heart {
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+      animation: pulseHeart 1.8s infinite ease-in-out;
+    }
+
+    .footer-quote {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      color: var(--dark-rose);
+      font-style: italic;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .footer-family {
+      font-family: var(--font-hand);
+      font-size: 1.7rem;
+      color: var(--primary-pink);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .footer-dedication {
+      font-size: 0.95rem;
+      color: var(--muted-text);
+      line-height: 1.5;
+    }
+
     /* Confetti Canvas */
     #confettiCanvas {
       position: fixed;
@@ -1418,6 +1467,22 @@
     </section>
 
   </main>
+
+  <!-- Global Romantic Web Page Footer -->
+  <footer class="site-footer">
+    <div class="footer-card">
+      <div class="footer-heart">💖</div>
+      <p class="footer-quote">
+        "We will continue this love story forever with our beautiful daughter, Elise. I love you both so much!"
+      </p>
+      <div class="footer-family">
+        Joshua, Ara & Baby Elise 👨‍👩‍👧❤️
+      </div>
+      <p class="footer-dedication">
+        Happy Monthsary, Ara. Here's to us and our little family, today, tomorrow, and forever. ✨
+      </p>
+    </div>
+  </footer>
 
   <script>
     /* ==========================================================================
