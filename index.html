@@ -2976,8 +2976,8 @@
 
       const bubble = document.createElement('div');
 
-      const senderName = msg.sender_name || (msg._isLocal && currentLoggedInUser ? currentLoggedInUser.name : (currentLoggedInUser ? currentLoggedInUser.name : 'Love Message'));
-      const isMyMessage = msg._isLocal || (currentLoggedInUser && (msg.sender_name === currentLoggedInUser.name));
+      const senderName = msg.sender_name || (msg.user_id && dynamicUsersList.length ? (dynamicUsersList.find(u => String(u.id) === String(msg.user_id))?.name) : null) || (msg._isLocal && currentLoggedInUser ? currentLoggedInUser.name : (currentLoggedInUser ? currentLoggedInUser.name : 'Love Message'));
+      const isMyMessage = msg._isLocal || (currentLoggedInUser && (String(msg.user_id) === String(currentLoggedInUser.id) || msg.sender_name === currentLoggedInUser.name));
 
       bubble.className = `chat-message-bubble ${isMyMessage ? 'outgoing' : 'incoming'}`;
 
@@ -3020,10 +3020,12 @@
 
       chatInput.value = '';
 
+      const userId = currentLoggedInUser ? currentLoggedInUser.id : null;
       const senderName = currentLoggedInUser ? currentLoggedInUser.name : 'User';
 
       const localMsg = {
         id: crypto.randomUUID ? crypto.randomUUID() : 'msg-' + Date.now(),
+        user_id: userId,
         sender_name: senderName,
         content: content,
         created_at: new Date().toISOString(),
@@ -3035,10 +3037,16 @@
       localStorage.setItem('monthsary_local_chat_history', JSON.stringify(liveMessages));
       appendSingleChatMessage(localMsg, true);
 
-      // Save to Supabase table 'messages'
+      // Save to Supabase table 'messages' with user_id, sender_name, and content
       try {
         if (supabaseConfig.url && !supabaseConfig.url.includes('your-project')) {
-          // Attempt insert with sender_name column first
+          // Attempt insert with user_id and sender_name
+          let payload = {
+            content: content
+          };
+          if (userId) payload.user_id = userId;
+          if (senderName) payload.sender_name = senderName;
+
           let res = await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
             method: 'POST',
             headers: {
@@ -3047,16 +3055,13 @@
               'Content-Type': 'application/json',
               'Prefer': 'return=representation'
             },
-            body: JSON.stringify({
-              sender_name: senderName,
-              content: content
-            })
+            body: JSON.stringify(payload)
           });
 
-          // Fallback: If Supabase schema does not have sender_name column yet, insert content alone so message is saved!
+          // Fallback: If user_id or sender_name column is missing, insert content alone
           if (!res.ok) {
             const errBody = await res.text();
-            console.warn('POST with sender_name failed, trying content-only fallback:', errBody);
+            console.warn('POST with user_id/sender_name failed, trying content-only fallback:', errBody);
 
             await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
               method: 'POST',
@@ -3067,7 +3072,7 @@
                 'Prefer': 'return=representation'
               },
               body: JSON.stringify({
-                content: `${senderName}: ${content}`
+                content: content
               })
             });
           }
