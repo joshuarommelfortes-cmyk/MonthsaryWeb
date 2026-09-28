@@ -1693,6 +1693,12 @@
           <button class="keypad-btn" onclick="pressPin('0')">0</button>
           <button class="keypad-btn keypad-btn-action" onclick="backspacePin()">⌫</button>
         </div>
+
+        <div style="margin-top: 18px;">
+          <button id="adminTriggerBtn" class="admin-trigger-btn" onclick="openAdminModal()">
+            ⚙️ Super Admin Portal
+          </button>
+        </div>
       </div>
     </section>
 
@@ -2066,12 +2072,11 @@
     }
 
     function verifyPin() {
-      // Check default anniversary pincode OR any pincode from active Supabase users
-      const isValidDefault = (enteredPin === config.correctPin);
+      // Allow ONLY active users from Supabase `users` table to log in on main keypad
       const matchedUser = dynamicUsersList.find(u => String(u.pincode).trim() === enteredPin);
 
-      if (isValidDefault || matchedUser) {
-        // Success PIN
+      if (matchedUser) {
+        // Success PIN for registered user
         createMiniHeartBurst(document.getElementById('pinDots'));
         triggerConfettiExplosion(20);
         setTimeout(() => {
