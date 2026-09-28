@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <!-- Supabase JS Client for Realtime Messaging -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
     :root {
@@ -901,6 +903,211 @@
       line-height: 1.5;
     }
 
+    /* Floating Live Chat Widget */
+    .floating-chat-toggle {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary-pink), var(--dark-rose));
+      color: var(--white);
+      border: 2px solid var(--white);
+      box-shadow: 0 8px 25px rgba(255, 79, 134, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.6rem;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .floating-chat-toggle:hover {
+      transform: scale(1.1) rotate(5deg);
+      box-shadow: 0 12px 30px rgba(255, 79, 134, 0.5);
+    }
+
+    .floating-chat-toggle .chat-badge {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      background: #00e676;
+      border: 2px solid var(--white);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+
+    /* Chat Window Sliding Modal */
+    .chat-modal {
+      position: fixed;
+      bottom: 95px;
+      right: 24px;
+      z-index: 999;
+      width: 350px;
+      max-width: calc(100vw - 32px);
+      height: 480px;
+      max-height: calc(100vh - 120px);
+      background: rgba(255, 255, 255, 0.97);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1.5px solid rgba(255, 216, 229, 0.9);
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(141, 41, 79, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(20px) scale(0.95);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .chat-modal.open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+    }
+
+    .chat-header {
+      background: linear-gradient(135deg, var(--primary-pink), var(--rose));
+      color: var(--white);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-header-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chat-close-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: var(--white);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .chat-close-btn:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .chat-messages-container {
+      flex: 1;
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #FFFBFD;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .chat-message-bubble {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 0.92rem;
+      line-height: 1.4;
+      word-wrap: break-word;
+      animation: popIn 0.25s ease-out;
+      position: relative;
+    }
+
+    .chat-message-bubble.incoming {
+      align-self: flex-start;
+      background: #FFEBF2;
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+      border: 1px solid var(--light-pink);
+    }
+
+    .chat-message-bubble.outgoing {
+      align-self: flex-end;
+      background: var(--primary-pink);
+      color: var(--white);
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-message-time {
+      font-size: 0.7rem;
+      opacity: 0.75;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.9) translateY(6px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .chat-input-area {
+      padding: 12px;
+      background: var(--white);
+      border-top: 1px solid var(--light-pink);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chat-input-field {
+      flex: 1;
+      border: 1.5px solid var(--light-pink);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input-field:focus {
+      border-color: var(--primary-pink);
+    }
+
+    .chat-send-btn {
+      background: var(--primary-pink);
+      color: var(--white);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      transition: transform 0.2s, background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .chat-send-btn:hover {
+      transform: scale(1.08);
+      background: var(--dark-rose);
+    }
+
+    .chat-empty-hint {
+      text-align: center;
+      color: var(--muted-text);
+      font-size: 0.85rem;
+      margin: auto 0;
+    }
+
     /* Confetti Canvas */
     #confettiCanvas {
       position: fixed;
@@ -1467,6 +1674,29 @@
     </section>
 
   </main>
+
+  <!-- Floating Chat Toggle Button (Bottom-Right) -->
+  <button id="chatToggleBtn" class="floating-chat-toggle" aria-label="Open Live Chat">
+    <span>☁️</span>
+    <span class="chat-badge"></span>
+  </button>
+
+  <!-- Live Chat Sliding Modal Window -->
+  <div id="chatModal" class="chat-modal" role="dialog" aria-modal="true" aria-label="Live Chat Box">
+    <div class="chat-header">
+      <div class="chat-header-title">
+        <span>💬 Live Love Messages</span>
+      </div>
+      <button id="chatCloseBtn" class="chat-close-btn" aria-label="Close Chat">✕</button>
+    </div>
+    <div id="chatMessages" class="chat-messages-container">
+      <div class="chat-empty-hint">Loading love messages... 💖</div>
+    </div>
+    <form id="chatForm" class="chat-input-area" onsubmit="handleSendChatMessage(event)">
+      <input type="text" id="chatInput" class="chat-input-field" placeholder="Type a message..." autocomplete="off" />
+      <button type="submit" class="chat-send-btn" aria-label="Send Message">🚀</button>
+    </form>
+  </div>
 
   <script>
     /* ==========================================================================
@@ -2414,6 +2644,194 @@
         });
       }
     });
+
+    /* ==========================================================================
+       10. SUPABASE LIVE MESSAGING & REALTIME BROADCAST
+       ========================================================================== */
+    let supabaseClient = null;
+    let liveMessages = [];
+    let chatChannel = null;
+
+    const chatToggleBtn = document.getElementById('chatToggleBtn');
+    const chatModal = document.getElementById('chatModal');
+    const chatCloseBtn = document.getElementById('chatCloseBtn');
+    const chatMessagesContainer = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+
+    // Initialize Supabase Client for Realtime & REST
+    if (window.supabase && supabaseConfig.url && !supabaseConfig.url.includes('your-project')) {
+      supabaseClient = window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey);
+    }
+
+    // Toggle Chat Window Open/Close
+    chatToggleBtn.addEventListener('click', () => {
+      chatModal.classList.toggle('open');
+      if (chatModal.classList.contains('open')) {
+        chatInput.focus();
+        scrollChatToBottom();
+      }
+    });
+
+    chatCloseBtn.addEventListener('click', () => {
+      chatModal.classList.remove('open');
+    });
+
+    // Auto Cleanup Messages older than 30 Days & Fetch Recent
+    async function loadLiveMessages() {
+      try {
+        if (!supabaseConfig.url || supabaseConfig.url.includes('your-project')) {
+          chatMessagesContainer.innerHTML = '<div class="chat-empty-hint">Live chat ready! Type a message below. 💌</div>';
+          return;
+        }
+
+        // Automatic Cleanup: Delete messages older than 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const isoCutoff = thirtyDaysAgo.toISOString();
+
+        await fetch(`${supabaseConfig.url}/rest/v1/messages?created_at=lt.${encodeURIComponent(isoCutoff)}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': supabaseConfig.anonKey,
+            'Authorization': `Bearer ${supabaseConfig.anonKey}`
+          }
+        }).catch(e => console.warn('30-day message cleanup check:', e));
+
+        // Fetch last 50 messages
+        const response = await fetch(`${supabaseConfig.url}/rest/v1/messages?select=*&order=created_at.asc&limit=50`, {
+          headers: {
+            'apikey': supabaseConfig.anonKey,
+            'Authorization': `Bearer ${supabaseConfig.anonKey}`
+          }
+        });
+
+        if (response.ok) {
+          liveMessages = await response.json();
+          renderChatMessages();
+        }
+      } catch (err) {
+        console.error('Error loading live chat messages:', err);
+        chatMessagesContainer.innerHTML = '<div class="chat-empty-hint">Welcome to Live Chat! Say hi ❤️</div>';
+      }
+    }
+
+    // Render messages in chat container
+    function renderChatMessages() {
+      if (!liveMessages || liveMessages.length === 0) {
+        chatMessagesContainer.innerHTML = '<div class="chat-empty-hint">No messages yet. Send a love note! 💖</div>';
+        return;
+      }
+
+      chatMessagesContainer.innerHTML = '';
+      liveMessages.forEach(msg => {
+        appendSingleChatMessage(msg, false);
+      });
+      scrollChatToBottom();
+    }
+
+    function appendSingleChatMessage(msg, autoScroll = true) {
+      const existingHint = chatMessagesContainer.querySelector('.chat-empty-hint');
+      if (existingHint) existingHint.remove();
+
+      const bubble = document.createElement('div');
+      // Simple logic: if message was created within last 2 seconds from current browser session, mark outgoing
+      const isMyMessage = msg._isLocal || (Date.now() - new Date(msg.created_at).getTime() < 3000);
+      bubble.className = `chat-message-bubble ${isMyMessage ? 'outgoing' : 'incoming'}`;
+
+      const textNode = document.createElement('div');
+      textNode.textContent = msg.content;
+      bubble.appendChild(textNode);
+
+      if (msg.created_at) {
+        const timeNode = document.createElement('div');
+        timeNode.className = 'chat-message-time';
+        const d = new Date(msg.created_at);
+        timeNode.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        bubble.appendChild(timeNode);
+      }
+
+      chatMessagesContainer.appendChild(bubble);
+
+      if (autoScroll) {
+        scrollChatToBottom();
+      }
+    }
+
+    function scrollChatToBottom() {
+      requestAnimationFrame(() => {
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+      });
+    }
+
+    // Handle Sending New Chat Message to Supabase
+    async function handleSendChatMessage(event) {
+      if (event) event.preventDefault();
+      const content = chatInput.value.trim();
+      if (!content) return;
+
+      chatInput.value = '';
+
+      const localMsg = {
+        id: crypto.randomUUID ? crypto.randomUUID() : 'temp-' + Date.now(),
+        content: content,
+        created_at: new Date().toISOString(),
+        _isLocal: true
+      };
+
+      // Optimistic render immediately for instant feedback
+      liveMessages.push(localMsg);
+      appendSingleChatMessage(localMsg, true);
+
+      // Save to Supabase table 'messages'
+      try {
+        if (supabaseConfig.url && !supabaseConfig.url.includes('your-project')) {
+          await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
+            method: 'POST',
+            headers: {
+              'apikey': supabaseConfig.anonKey,
+              'Authorization': `Bearer ${supabaseConfig.anonKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({
+              content: content
+            })
+          });
+        }
+      } catch (err) {
+        console.error('Failed to save message to Supabase:', err);
+      }
+    }
+
+    // Subscribe to Supabase Realtime Broadcast / Database Changes
+    function initSupabaseRealtimeChat() {
+      if (!supabaseClient) return;
+
+      try {
+        chatChannel = supabaseClient
+          .channel('public:messages')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+            const newMsg = payload.new;
+            // Avoid duplicate rendering if already optimistically added
+            const isAlreadyAdded = liveMessages.some(m => m.id === newMsg.id || (m.content === newMsg.content && Math.abs(new Date(m.created_at) - new Date(newMsg.created_at)) < 3000));
+            if (!isAlreadyAdded) {
+              liveMessages.push(newMsg);
+              appendSingleChatMessage(newMsg, true);
+            }
+          })
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              console.log('Connected to Supabase Realtime Chat! 💬');
+            }
+          });
+      } catch (err) {
+        console.warn('Realtime subscription error:', err);
+      }
+    }
+
+    // Initialize on page load
+    loadLiveMessages();
+    initSupabaseRealtimeChat();
   </script>
 </body>
 </html>
