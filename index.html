@@ -1035,6 +1035,135 @@
       word-wrap: break-word;
       animation: popIn 0.25s ease-out;
       position: relative;
+      touch-action: pan-y;
+      transition: transform 0.15s ease-out;
+    }
+
+    .chat-message-bubble.swiping {
+      transition: none;
+    }
+
+    /* Quoted Reply Box inside Chat Bubble */
+    .chat-reply-quote-box {
+      background: rgba(0, 0, 0, 0.06);
+      border-left: 3px solid var(--primary-pink);
+      border-radius: 8px;
+      padding: 5px 9px;
+      margin-bottom: 6px;
+      font-size: 0.8rem;
+    }
+
+    .chat-message-bubble.outgoing .chat-reply-quote-box {
+      background: rgba(255, 255, 255, 0.2);
+      border-left-color: var(--white);
+    }
+
+    .chat-reply-quote-sender {
+      font-weight: 700;
+      font-size: 0.72rem;
+      color: var(--primary-pink);
+      margin-bottom: 2px;
+    }
+
+    .chat-message-bubble.outgoing .chat-reply-quote-sender {
+      color: var(--white);
+    }
+
+    .chat-reply-quote-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      opacity: 0.88;
+    }
+
+    /* Reply Action Hover/Tap Button on Bubble */
+    .chat-reply-action-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--white);
+      border: 1px solid var(--light-pink);
+      color: var(--primary-pink);
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      box-shadow: var(--shadow-sm);
+      z-index: 5;
+    }
+
+    .chat-message-bubble.incoming .chat-reply-action-btn { right: -32px; }
+    .chat-message-bubble.outgoing .chat-reply-action-btn { left: -32px; }
+
+    .chat-message-bubble:hover .chat-reply-action-btn {
+      opacity: 1;
+    }
+
+    /* Swipe Left Indicator Icon */
+    .swipe-reply-icon {
+      position: absolute;
+      right: -36px;
+      top: 50%;
+      transform: translateY(-50%) scale(0.7);
+      opacity: 0;
+      font-size: 1.1rem;
+      transition: all 0.15s ease-out;
+      pointer-events: none;
+    }
+
+    .swipe-reply-icon.visible {
+      opacity: 1;
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    /* Reply Preview Bar above input box */
+    .chat-reply-bar-preview {
+      display: none;
+      background: #FFEBF2;
+      border-top: 1px solid var(--light-pink);
+      padding: 8px 14px;
+      align-items: center;
+      justify-content: space-between;
+      animation: popIn 0.2s ease-out;
+    }
+
+    .chat-reply-bar-preview.show {
+      display: flex;
+    }
+
+    .chat-reply-bar-info {
+      text-align: left;
+      font-size: 0.8rem;
+      overflow: hidden;
+    }
+
+    .chat-reply-bar-sender {
+      font-weight: 700;
+      color: var(--primary-pink);
+    }
+
+    .chat-reply-bar-text {
+      color: var(--muted-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+
+    .chat-reply-cancel-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted-text);
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 2px 6px;
     }
 
     .chat-message-sender {
@@ -2075,6 +2204,14 @@
       <span class="chat-emoji-item" onclick="insertEmojiToChat('🧸')">🧸</span>
       <span class="chat-emoji-item" onclick="insertEmojiToChat('🥺')">🥺</span>
       <span class="chat-emoji-item" onclick="insertEmojiToChat('🫂')">🫂</span>
+    </div>
+    <!-- Reply Preview Banner Above Input -->
+    <div id="replyBarPreview" class="chat-reply-bar-preview">
+      <div class="chat-reply-bar-info">
+        <div style="font-size: 0.75rem; color: var(--primary-pink); font-weight: 700;">Replying to <span id="replyBarSender">User</span></div>
+        <div id="replyBarText" class="chat-reply-bar-text">Message preview...</div>
+      </div>
+      <button type="button" class="chat-reply-cancel-btn" onclick="cancelReplyMode()" aria-label="Cancel Reply">✕</button>
     </div>
     <form id="chatForm" class="chat-input-area" onsubmit="handleSendChatMessage(event)">
       <button type="button" class="chat-emoji-btn" onclick="toggleEmojiPickerTray()" aria-label="Toggle Emoji Picker">😊</button>
@@ -3152,6 +3289,39 @@
       scrollChatToBottom();
     }
 
+    // Active Replying State
+    let currentReplyTarget = null;
+
+    function setReplyMode(msg, senderName) {
+      currentReplyTarget = {
+        id: msg.id,
+        sender_name: senderName,
+        content: msg.content
+      };
+
+      const replyBar = document.getElementById('replyBarPreview');
+      const replySender = document.getElementById('replyBarSender');
+      const replyText = document.getElementById('replyBarText');
+
+      if (replyBar && replySender && replyText) {
+        replySender.textContent = senderName;
+        replyText.textContent = msg.content;
+        replyBar.classList.add('show');
+      }
+
+      if (chatInput) {
+        chatInput.focus();
+      }
+    }
+
+    function cancelReplyMode() {
+      currentReplyTarget = null;
+      const replyBar = document.getElementById('replyBarPreview');
+      if (replyBar) {
+        replyBar.classList.remove('show');
+      }
+    }
+
     function appendSingleChatMessage(msg, autoScroll = true) {
       const existingHint = chatMessagesContainer.querySelector('.chat-empty-hint');
       if (existingHint) existingHint.remove();
@@ -3169,6 +3339,24 @@
       senderNode.textContent = senderName;
       bubble.appendChild(senderNode);
 
+      // If message is a reply to another message, render quoted reply box
+      if (msg.reply_to || msg.reply_sender) {
+        const quoteBox = document.createElement('div');
+        quoteBox.className = 'chat-reply-quote-box';
+
+        const quoteSender = document.createElement('div');
+        quoteSender.className = 'chat-reply-quote-sender';
+        quoteSender.textContent = `Replying to ${msg.reply_sender || 'User'}`;
+        quoteBox.appendChild(quoteSender);
+
+        const quoteText = document.createElement('div');
+        quoteText.className = 'chat-reply-quote-text';
+        quoteText.textContent = msg.reply_text || 'Original message';
+        quoteBox.appendChild(quoteText);
+
+        bubble.appendChild(quoteBox);
+      }
+
       const textNode = document.createElement('div');
       textNode.textContent = msg.content;
       bubble.appendChild(textNode);
@@ -3180,6 +3368,72 @@
         timeNode.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         bubble.appendChild(timeNode);
       }
+
+      // Action Reply Button (Hover on Desktop / Tap)
+      const replyBtn = document.createElement('button');
+      replyBtn.type = 'button';
+      replyBtn.className = 'chat-reply-action-btn';
+      replyBtn.innerHTML = '↩️';
+      replyBtn.title = 'Reply to this message';
+      replyBtn.onclick = (e) => {
+        e.stopPropagation();
+        setReplyMode(msg, senderName);
+      };
+      bubble.appendChild(replyBtn);
+
+      // Swipe Left / Right Gesture Handler for Mobile Touch Devices
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let currentX = 0;
+      let isSwiping = false;
+
+      const swipeIcon = document.createElement('span');
+      swipeIcon.className = 'swipe-reply-icon';
+      swipeIcon.textContent = '↩️';
+      bubble.appendChild(swipeIcon);
+
+      bubble.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          isSwiping = true;
+          bubble.classList.add('swiping');
+        }
+      }, { passive: true });
+
+      bubble.addEventListener('touchmove', (e) => {
+        if (!isSwiping || e.touches.length !== 1) return;
+        const diffX = e.touches[0].clientX - touchStartX;
+        const diffY = e.touches[0].clientY - touchStartY;
+
+        // Ensure primary horizontal gesture (swipe left)
+        if (Math.abs(diffX) > Math.abs(diffY) && diffX < 0) {
+          currentX = Math.max(diffX, -60);
+          bubble.style.transform = `translateX(${currentX}px)`;
+
+          if (currentX < -35) {
+            swipeIcon.classList.add('visible');
+          } else {
+            swipeIcon.classList.remove('visible');
+          }
+        }
+      }, { passive: true });
+
+      const endSwipe = () => {
+        if (!isSwiping) return;
+        isSwiping = false;
+        bubble.classList.remove('swiping');
+        bubble.style.transform = 'translateX(0px)';
+        swipeIcon.classList.remove('visible');
+
+        if (currentX < -35) {
+          setReplyMode(msg, senderName);
+        }
+        currentX = 0;
+      };
+
+      bubble.addEventListener('touchend', endSwipe);
+      bubble.addEventListener('touchcancel', endSwipe);
 
       chatMessagesContainer.appendChild(bubble);
 
@@ -3245,11 +3499,17 @@
       chatInput.value = '';
       sendStopTypingBroadcast(senderName);
 
+      const replyInfo = currentReplyTarget ? { ...currentReplyTarget } : null;
+      cancelReplyMode();
+
       const localMsg = {
         id: crypto.randomUUID ? crypto.randomUUID() : 'msg-' + Date.now(),
         user_id: userId,
         sender_name: senderName,
         content: content,
+        reply_to: replyInfo ? replyInfo.id : null,
+        reply_sender: replyInfo ? replyInfo.sender_name : null,
+        reply_text: replyInfo ? replyInfo.content : null,
         created_at: new Date().toISOString(),
         _isLocal: true
       };
