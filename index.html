@@ -1390,8 +1390,8 @@
           <div class="upload-form-group">
             <input type="text" id="imageTitleInput" class="upload-input" placeholder="Memory Title (e.g. Our Date Night ❤️)" />
             <label for="imageFileInput" class="file-select-label">
-              <span id="fileNameDisplay">📸 Choose Photo(s)</span>
-              <input type="file" id="imageFileInput" accept="image/*" multiple class="file-input-hidden" onchange="updateFileNameDisplay()" />
+              <span id="fileNameDisplay">📸 Choose & Auto-Upload Photo(s)</span>
+              <input type="file" id="imageFileInput" accept="image/*" multiple class="file-input-hidden" onchange="onFileSelectedAutoUpload()" />
             </label>
             <button id="uploadBtn" class="btn btn-primary upload-btn" onclick="handleUploadAndSave()">
               <span>Upload Memory 🚀</span>
@@ -1601,7 +1601,16 @@
           displaySpan.textContent = `📷 ${fileInput.files.length} Photos Selected`;
         }
       } else {
-        displaySpan.textContent = '📸 Choose Photo(s)';
+        displaySpan.textContent = '📸 Choose & Auto-Upload Photo(s)';
+      }
+    }
+
+    // Auto-Trigger Upload Immediately Upon File Selection
+    async function onFileSelectedAutoUpload() {
+      updateFileNameDisplay();
+      const fileInput = document.getElementById('imageFileInput');
+      if (fileInput.files && fileInput.files.length > 0) {
+        await handleUploadAndSave();
       }
     }
 
