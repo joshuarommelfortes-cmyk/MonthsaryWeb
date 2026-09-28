@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>Happy Monthsary Ara My Love ❤️</title>
   <meta name="description" content="A romantic interactive surprise for Ara and our family on our special monthsary.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,12 +42,17 @@
       color: var(--text);
       font-family: var(--font-body);
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       justify-content: center;
       align-items: center;
       overflow-x: hidden;
       position: relative;
-      padding: 20px 0;
+      padding: 16px 0;
+      padding-top: max(16px, env(safe-area-inset-top));
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      padding-left: max(0px, env(safe-area-inset-left));
+      padding-right: max(0px, env(safe-area-inset-right));
     }
 
     /* Ambient Animated Background */
@@ -886,6 +891,182 @@
         transform: translateY(105vh) rotate(360deg) scale(0.8);
       }
     }
+
+    /* ==========================================================================
+       MOBILE RESPONSIVE ENHANCEMENTS
+       ========================================================================== */
+    @media (max-width: 600px) {
+      .app-container {
+        padding: 0 12px;
+      }
+
+      .music-btn {
+        top: 12px;
+        right: 12px;
+        padding: 8px 14px;
+        font-size: 0.8rem;
+        gap: 6px;
+      }
+
+      .card {
+        padding: 24px 16px;
+        border-radius: 24px;
+        max-height: calc(100dvh - 28px);
+      }
+
+      .eyebrow {
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+      }
+
+      .heading {
+        font-size: 1.75rem;
+        margin-bottom: 12px;
+      }
+
+      .description {
+        font-size: 0.95rem;
+        margin-bottom: 18px;
+        line-height: 1.5;
+      }
+
+      .btn {
+        padding: 14px 28px;
+        font-size: 0.95rem;
+        width: 100%;
+        max-width: 280px;
+      }
+
+      .keypad-grid {
+        gap: 8px;
+        max-width: 240px;
+      }
+
+      .keypad-btn {
+        width: 58px;
+        height: 58px;
+        font-size: 1.3rem;
+      }
+
+      .pin-dots-container {
+        gap: 10px;
+        margin: 16px 0 12px 0;
+      }
+
+      .pin-dot {
+        width: 15px;
+        height: 15px;
+      }
+
+      .envelope-wrapper {
+        margin: 20px auto 18px auto;
+        width: 180px;
+        height: 125px;
+      }
+
+      .envelope-pocket {
+        border-left-width: 90px;
+        border-right-width: 90px;
+        border-top-width: 58px;
+        border-bottom-width: 67px;
+      }
+
+      .envelope-flap {
+        border-left-width: 90px;
+        border-right-width: 90px;
+        border-top-width: 67px;
+      }
+
+      .envelope-seal {
+        top: 52px;
+        width: 32px;
+        height: 32px;
+        font-size: 0.95rem;
+      }
+
+      .letter-preview {
+        height: 80px;
+        bottom: 8px;
+        left: 10px;
+        right: 10px;
+      }
+
+      .counter-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .counter-box {
+        padding: 10px 4px;
+      }
+
+      .counter-num {
+        font-size: 1.4rem;
+      }
+
+      .counter-label {
+        font-size: 0.7rem;
+      }
+
+      .photo-grid-scroll-box {
+        max-height: 44vh;
+        padding: 8px;
+      }
+
+      .responsive-masonry-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+
+      .family-quote-box {
+        padding: 14px 14px;
+      }
+
+      .family-quote-text {
+        font-size: 1.05rem;
+      }
+
+      .family-quote-sub {
+        font-size: 1.35rem;
+      }
+
+      .lightbox-content {
+        max-width: 96vw;
+        max-height: 75vh;
+      }
+
+      .lightbox-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 1.1rem;
+      }
+
+      .lightbox-prev { left: 8px; }
+      .lightbox-next { right: 8px; }
+
+      .lightbox-close {
+        top: 10px;
+        right: 10px;
+        width: 36px;
+        height: 36px;
+        font-size: 1.2rem;
+      }
+    }
+
+    @media (max-width: 375px) {
+      .responsive-masonry-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .keypad-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.15rem;
+      }
+      .heading {
+        font-size: 1.55rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1365,6 +1546,30 @@
       if (e.target === lightboxModal) closeLightbox();
     });
 
+    // Touch Swipe Navigation for Mobile Devices
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    lightboxModal.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    lightboxModal.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+      const swipeThreshold = 40;
+      if (touchEndX < touchStartX - swipeThreshold) {
+        // Swiped Left -> Next photo
+        lightboxNext.click();
+      } else if (touchEndX > touchStartX + swipeThreshold) {
+        // Swiped Right -> Previous photo
+        lightboxPrev.click();
+      }
+    }
+
     // Keyboard navigation (Arrow keys & Escape)
     document.addEventListener('keydown', (e) => {
       if (!lightboxModal.classList.contains('show')) return;
@@ -1459,10 +1664,11 @@
       const containerRect = questionBox.getBoundingClientRect();
       const btnRect = noBtn.getBoundingClientRect();
 
-      const maxX = (containerRect.width - btnRect.width) / 2 - 10;
+      const availableWidth = Math.max(30, (containerRect.width - btnRect.width) / 2 - 12);
+      const maxX = Math.min(120, availableWidth);
       const minX = -maxX;
-      const maxY = 50;
-      const minY = -50;
+      const maxY = 45;
+      const minY = -45;
 
       const randomX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
       const randomY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
