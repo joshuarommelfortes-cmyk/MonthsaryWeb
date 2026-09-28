@@ -3046,10 +3046,13 @@
       // Save to Supabase table 'messages' (columns: id, content, created_at, user_id)
       try {
         if (supabaseConfig.url && !supabaseConfig.url.includes('your-project')) {
+          const isValidUuid = (id) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+          
           const payload = {
             content: content
           };
-          if (userId) {
+          
+          if (userId && isValidUuid(userId)) {
             payload.user_id = userId;
           }
 
@@ -3068,9 +3071,9 @@
             const errText = await res.text();
             console.error('Supabase message insert error:', res.status, errText);
 
-            // If user_id cause foreign key constraint failure, retry with content only
+            // Retry without user_id if payload included user_id and failed
             if (payload.user_id) {
-              await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
+              const retryRes = await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
                 method: 'POST',
                 headers: {
                   'apikey': supabaseConfig.anonKey,
@@ -3080,6 +3083,11 @@
                 },
                 body: JSON.stringify({ content: content })
               });
+              if (retryRes.ok) {
+                console.log('Successfully saved message to Supabase (without user_id)!');
+              } else {
+                console.error('Retry save failed:', retryRes.status, await retryRes.text());
+              }
             }
           } else {
             console.log('Successfully saved message to Supabase!');
