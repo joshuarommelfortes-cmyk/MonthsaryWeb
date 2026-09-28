@@ -1306,6 +1306,165 @@
         font-size: 1.1rem;
       }
 
+    /* Super Admin Portal Modal & Gate */
+    .admin-trigger-btn {
+      margin-top: 16px;
+      background: transparent;
+      border: 1px dashed var(--rose);
+      color: var(--dark-rose);
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .admin-trigger-btn:hover {
+      background: var(--light-pink);
+      transform: scale(1.03);
+    }
+
+    .admin-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(84, 38, 56, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .admin-modal-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .admin-modal-card {
+      background: rgba(255, 255, 255, 0.98);
+      border: 1.5px solid var(--rose);
+      border-radius: 28px;
+      padding: 28px 22px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 50px rgba(141, 41, 79, 0.25);
+      position: relative;
+      transform: scale(0.92);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .admin-modal-overlay.open .admin-modal-card {
+      transform: scale(1);
+    }
+
+    .admin-close-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: var(--light-pink);
+      border: none;
+      color: var(--dark-rose);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .admin-close-btn:hover {
+      background: var(--rose);
+      color: var(--white);
+    }
+
+    .admin-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 16px 0;
+      text-align: left;
+    }
+
+    .admin-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid var(--light-pink);
+      border-radius: 14px;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .admin-input:focus {
+      border-color: var(--primary-pink);
+      box-shadow: 0 0 0 3px rgba(255, 79, 134, 0.15);
+    }
+
+    .admin-user-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .admin-user-item {
+      background: #FFF0F5;
+      border: 1px solid var(--light-pink);
+      padding: 10px 14px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .admin-user-info {
+      text-align: left;
+    }
+
+    .admin-user-name {
+      font-weight: 700;
+      color: var(--dark-rose);
+      font-size: 0.95rem;
+    }
+
+    .admin-user-pin {
+      font-size: 0.8rem;
+      color: var(--muted-text);
+    }
+
+    .admin-delete-user-btn {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #ffcdd2;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .admin-delete-user-btn:hover {
+      background: #e53935;
+      color: var(--white);
+    }
+
       .lightbox-prev { left: 8px; }
       .lightbox-next { right: 8px; }
 
@@ -1535,6 +1694,12 @@
           <button class="keypad-btn" onclick="pressPin('0')">0</button>
           <button class="keypad-btn keypad-btn-action" onclick="backspacePin()">⌫</button>
         </div>
+
+        <div style="margin-top: 18px;">
+          <button id="adminTriggerBtn" class="admin-trigger-btn" onclick="openAdminModal()">
+            ⚙️ Super Admin Portal
+          </button>
+        </div>
       </div>
     </section>
 
@@ -1689,6 +1854,58 @@
     </section>
 
   </main>
+
+  <!-- Super Admin Portal Modal -->
+  <div id="adminModalOverlay" class="admin-modal-overlay" role="dialog" aria-modal="true" aria-label="Super Admin Portal">
+    <div class="admin-modal-card">
+      <button class="admin-close-btn" onclick="closeAdminModal()">✕</button>
+
+      <!-- View 1: Super Admin Pincode Gate -->
+      <div id="adminAuthView">
+        <h2 class="heading" style="font-size: 1.8rem; margin-bottom: 8px;">🔐 Super Admin Access</h2>
+        <p class="description" style="margin-bottom: 16px;">Enter Super Admin Pincode to manage authorized users</p>
+
+        <div class="admin-form-group">
+          <input type="password" id="adminPinInput" class="admin-input" placeholder="Enter Super Admin Pincode" maxlength="6" autocomplete="off" />
+          <button class="btn btn-primary" onclick="verifyAdminPin()" style="padding: 12px 24px; font-size: 0.95rem;">
+            Authenticate Access 🚀
+          </button>
+        </div>
+        <div id="adminAuthStatus" class="upload-status"></div>
+      </div>
+
+      <!-- View 2: User Management Module (Shown after verification) -->
+      <div id="adminDashboardView" style="display: none;">
+        <h2 class="heading" style="font-size: 1.8rem; margin-bottom: 6px;">👥 User Management</h2>
+        <p style="font-size: 0.85rem; color: var(--muted-text); margin-bottom: 16px;">Manage app users stored in Supabase `users` table</p>
+
+        <!-- Form: Add New User -->
+        <div style="background: #FFF0F5; border: 1.5px dashed var(--rose); padding: 16px; border-radius: 18px; margin-bottom: 20px;">
+          <h3 style="font-size: 1rem; color: var(--dark-rose); margin-bottom: 10px;">✨ Add New User</h3>
+          <div class="admin-form-group" style="margin: 0; gap: 8px;">
+            <input type="text" id="newUserNameInput" class="admin-input" placeholder="User Name (e.g. Ara)" />
+            <input type="text" id="newUserPinInput" class="admin-input" placeholder="User Pincode (e.g. 120724)" />
+            <button class="btn btn-primary" onclick="handleCreateUser()" style="padding: 12px 24px; font-size: 0.95rem; margin-top: 4px;">
+              Add User 👤
+            </button>
+          </div>
+          <div id="addUserStatus" class="upload-status" style="margin-top: 8px;"></div>
+        </div>
+
+        <!-- Active Users List -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 1rem; color: var(--dark-rose);">Active Users List</h3>
+            <span id="userCountBadge" style="font-size: 0.8rem; color: var(--muted-text); font-weight: 600;">0 Users</span>
+          </div>
+          <div id="adminUserList" class="admin-user-list">
+            <div style="color: var(--muted-text); font-size: 0.85rem; padding: 10px;">Loading users list...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
   <!-- Floating Chat Toggle Button (Bottom-Right, Gallery Only) -->
   <button id="chatToggleBtn" class="floating-chat-toggle" aria-label="Open Live Chat">
@@ -2859,6 +3076,211 @@
     // Initialize on page load
     loadLiveMessages();
     initSupabaseRealtimeChat();
+
+    /* ==========================================================================
+       11. SUPER ADMIN PORTAL & USER MANAGEMENT MODULE
+       ========================================================================== */
+    let isAdminAuthenticated = false;
+
+    function openAdminModal() {
+      const modal = document.getElementById('adminModalOverlay');
+      const authView = document.getElementById('adminAuthView');
+      const dashboardView = document.getElementById('adminDashboardView');
+      const pinInput = document.getElementById('adminPinInput');
+
+      if (!isAdminAuthenticated) {
+        authView.style.display = 'block';
+        dashboardView.style.display = 'none';
+        pinInput.value = '';
+        document.getElementById('adminAuthStatus').textContent = '';
+      } else {
+        authView.style.display = 'none';
+        dashboardView.style.display = 'block';
+        fetchActiveUsers();
+      }
+
+      modal.classList.add('open');
+      if (!isAdminAuthenticated && pinInput) pinInput.focus();
+    }
+
+    function closeAdminModal() {
+      const modal = document.getElementById('adminModalOverlay');
+      modal.classList.remove('open');
+    }
+
+    function verifyAdminPin() {
+      const pinInput = document.getElementById('adminPinInput');
+      const statusMsg = document.getElementById('adminAuthStatus');
+      const entered = (pinInput.value || '').trim();
+
+      if (entered === '120724') {
+        isAdminAuthenticated = true;
+        statusMsg.className = 'upload-status success';
+        statusMsg.textContent = '✅ Access Granted! Loading User Management...';
+
+        setTimeout(() => {
+          document.getElementById('adminAuthView').style.display = 'none';
+          document.getElementById('adminDashboardView').style.display = 'block';
+          fetchActiveUsers();
+        }, 600);
+      } else {
+        statusMsg.className = 'upload-status error';
+        statusMsg.textContent = '❌ Incorrect Super Admin Pincode!';
+      }
+    }
+
+    // Fetch active users (is_deleted is false) from Supabase `users` table
+    async function fetchActiveUsers() {
+      const listContainer = document.getElementById('adminUserList');
+      const badge = document.getElementById('userCountBadge');
+
+      try {
+        if (!supabaseConfig.url || supabaseConfig.url.includes('your-project')) {
+          listContainer.innerHTML = '<div style="color: var(--muted-text); font-size: 0.85rem; padding: 10px;">Supabase not configured yet.</div>';
+          return;
+        }
+
+        const url = `${supabaseConfig.url}/rest/v1/users?is_deleted=eq.false&select=*&order=created_at.desc`;
+        const response = await fetch(url, {
+          headers: {
+            'apikey': supabaseConfig.anonKey,
+            'Authorization': `Bearer ${supabaseConfig.anonKey}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+
+        const users = await response.json();
+        badge.textContent = `${users.length} ${users.length === 1 ? 'User' : 'Users'}`;
+
+        if (users.length === 0) {
+          listContainer.innerHTML = '<div style="color: var(--muted-text); font-size: 0.85rem; padding: 10px;">No active users found.</div>';
+          return;
+        }
+
+        listContainer.innerHTML = '';
+        users.forEach(user => {
+          const item = document.createElement('div');
+          item.className = 'admin-user-item';
+
+          const info = document.createElement('div');
+          info.className = 'admin-user-info';
+          info.innerHTML = `
+            <div class="admin-user-name">👤 ${escapeHtml(user.name || 'Unnamed')}</div>
+            <div class="admin-user-pin">PIN: ${escapeHtml(String(user.pincode || '***'))}</div>
+          `;
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'admin-delete-user-btn';
+          deleteBtn.textContent = 'Soft Delete 🗑️';
+          deleteBtn.onclick = () => softDeleteUser(user.id, user.name);
+
+          item.appendChild(info);
+          item.appendChild(deleteBtn);
+          listContainer.appendChild(item);
+        });
+
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        listContainer.innerHTML = `<div style="color: #c62828; font-size: 0.85rem; padding: 10px;">Error loading users list. Please check Supabase 'users' table.</div>`;
+      }
+    }
+
+    // Insert new user into Supabase `users` table
+    async function handleCreateUser() {
+      const nameInput = document.getElementById('newUserNameInput');
+      const pinInput = document.getElementById('newUserPinInput');
+      const statusMsg = document.getElementById('addUserStatus');
+
+      const name = nameInput.value.trim();
+      const pincode = pinInput.value.trim();
+
+      if (!name || !pincode) {
+        statusMsg.className = 'upload-status error';
+        statusMsg.textContent = 'Please enter both Name and Pincode!';
+        return;
+      }
+
+      try {
+        statusMsg.className = 'upload-status loading';
+        statusMsg.textContent = '⏳ Adding user to database...';
+
+        const url = `${supabaseConfig.url}/rest/v1/users`;
+        const payload = {
+          name: name,
+          pincode: pincode,
+          is_deleted: false
+        };
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseConfig.anonKey,
+            'Authorization': `Bearer ${supabaseConfig.anonKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(errText);
+        }
+
+        statusMsg.className = 'upload-status success';
+        statusMsg.textContent = `🎉 User "${name}" created successfully!`;
+
+        nameInput.value = '';
+        pinInput.value = '';
+
+        fetchActiveUsers();
+
+      } catch (err) {
+        console.error('Error creating user:', err);
+        statusMsg.className = 'upload-status error';
+        statusMsg.textContent = `❌ Failed to create user: ${err.message}`;
+      }
+    }
+
+    // Soft-delete user by setting is_deleted to true
+    async function softDeleteUser(userId, userName) {
+      const confirmDelete = confirm(`Are you sure you want to soft-delete user "${userName}"? 🗑️`);
+      if (!confirmDelete) return;
+
+      try {
+        const url = `${supabaseConfig.url}/rest/v1/users?id=eq.${userId}`;
+        const response = await fetch(url, {
+          method: 'PATCH',
+          headers: {
+            'apikey': supabaseConfig.anonKey,
+            'Authorization': `Bearer ${supabaseConfig.anonKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ is_deleted: true })
+        });
+
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+
+        fetchActiveUsers();
+      } catch (err) {
+        console.error('Error soft deleting user:', err);
+        alert(`❌ Could not soft delete user: ${err.message}`);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
   </script>
 </body>
 </html>
