@@ -2882,12 +2882,15 @@
     }
 
     // Toggle Chat Window Open/Close
-    chatToggleBtn.addEventListener('click', () => {
+    chatToggleBtn.addEventListener('click', async () => {
       chatModal.classList.toggle('open');
       if (chatModal.classList.contains('open')) {
         // Clear unread red dot when opened
         const badge = chatToggleBtn.querySelector('.chat-badge');
         if (badge) badge.style.display = 'none';
+
+        // Re-fetch latest messages from Supabase every time chat is opened
+        await loadLiveMessages();
         chatInput.focus();
         scrollChatToBottom();
       }
@@ -2901,7 +2904,9 @@
     async function loadLiveMessages() {
       try {
         if (!supabaseConfig.url || supabaseConfig.url.includes('your-project')) {
-          chatMessagesContainer.innerHTML = '<div class="chat-empty-hint">Live chat ready! Type a message below. 💌</div>';
+          const cached = JSON.parse(localStorage.getItem('monthsary_local_chat_history') || '[]');
+          liveMessages = cached;
+          renderChatMessages();
           return;
         }
 
@@ -2918,7 +2923,7 @@
           }
         }).catch(e => console.warn('30-day message cleanup check:', e));
 
-        // Fetch last 50 messages
+        // Fetch last 50 messages from Supabase
         const response = await fetch(`${supabaseConfig.url}/rest/v1/messages?select=*&order=created_at.asc&limit=50`, {
           headers: {
             'apikey': supabaseConfig.anonKey,
@@ -2928,11 +2933,26 @@
 
         if (response.ok) {
           liveMessages = await response.json();
+          // Update local backup cache
+          localStorage.setItem('monthsary_local_chat_history', JSON.stringify(liveMessages));
           renderChatMessages();
+        } else {
+          // Fallback to local storage if response is not ok
+          const cached = JSON.parse(localStorage.getItem('monthsary_local_chat_history') || '[]');
+          if (cached.length > 0) {
+            liveMessages = cached;
+            renderChatMessages();
+          }
         }
       } catch (err) {
         console.error('Error loading live chat messages:', err);
-        chatMessagesContainer.innerHTML = '<div class="chat-empty-hint">Welcome to Live Chat! Say hi ❤️</div>';
+        const cached = JSON.parse(localStorage.getItem('monthsary_local_chat_history') || '[]');
+        if (cached.length > 0) {
+          liveMessages = cached;
+          renderChatMessages();
+        } else {
+          chatMessagesContainer.innerHTML = '<div class="chat-empty-hint">Welcome to Live Chat! Say hi ❤️</div>';
+        }
       }
     }
 
@@ -2956,8 +2976,8 @@
 
       const bubble = document.createElement('div');
 
-      const senderName = msg.sender_name || (msg._isLocal && currentLoggedInUser ? currentLoggedInUser.name : 'Anonymous');
-      const isMyMessage = msg._isLocal || (currentLoggedInUser && msg.sender_name === currentLoggedInUser.name);
+      const senderName = msg.sender_name || (msg._isLocal && currentLoggedInUser ? currentLoggedInUser.name : (currentLoggedInUser ? currentLoggedInUser.name : 'Love Message'));
+      const isMyMessage = msg._isLocal || (currentLoggedInUser && (msg.sender_name === currentLoggedInUser.name));
 
       bubble.className = `chat-message-bubble ${isMyMessage ? 'outgoing' : 'incoming'}`;
 
@@ -3003,7 +3023,7 @@
       const senderName = currentLoggedInUser ? currentLoggedInUser.name : 'User';
 
       const localMsg = {
-        id: crypto.randomUUID ? crypto.randomUUID() : 'temp-' + Date.now(),
+        id: crypto.randomUUID ? crypto.randomUUID() : 'msg-' + Date.now(),
         sender_name: senderName,
         content: content,
         created_at: new Date().toISOString(),
@@ -3012,12 +3032,14 @@
 
       // Optimistic render immediately for instant feedback
       liveMessages.push(localMsg);
+      localStorage.setItem('monthsary_local_chat_history', JSON.stringify(liveMessages));
       appendSingleChatMessage(localMsg, true);
 
-      // Save to Supabase table 'messages' with sender_name column
+      // Save to Supabase table 'messages'
       try {
         if (supabaseConfig.url && !supabaseConfig.url.includes('your-project')) {
-          await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
+          // Attempt insert with sender_name column first
+          let res = await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
             method: 'POST',
             headers: {
               'apikey': supabaseConfig.anonKey,
@@ -3030,6 +3052,25 @@
               content: content
             })
           });
+
+          // Fallback: If Supabase schema does not have sender_name column yet, insert content alone so message is saved!
+          if (!res.ok) {
+            const errBody = await res.text();
+            console.warn('POST with sender_name failed, trying content-only fallback:', errBody);
+
+            await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
+              method: 'POST',
+              headers: {
+                'apikey': supabaseConfig.anonKey,
+                'Authorization': `Bearer ${supabaseConfig.anonKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify({
+                content: `${senderName}: ${content}`
+              })
+            });
+          }
         }
       } catch (err) {
         console.error('Failed to save message to Supabase:', err);
