@@ -3037,17 +3037,17 @@
       localStorage.setItem('monthsary_local_chat_history', JSON.stringify(liveMessages));
       appendSingleChatMessage(localMsg, true);
 
-      // Save to Supabase table 'messages' with user_id, sender_name, and content
+      // Save to Supabase table 'messages' (columns: id, content, created_at, user_id)
       try {
         if (supabaseConfig.url && !supabaseConfig.url.includes('your-project')) {
-          // Attempt insert with user_id and sender_name
-          let payload = {
+          const payload = {
             content: content
           };
-          if (userId) payload.user_id = userId;
-          if (senderName) payload.sender_name = senderName;
+          if (userId) {
+            payload.user_id = userId;
+          }
 
-          let res = await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
+          const res = await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
             method: 'POST',
             headers: {
               'apikey': supabaseConfig.anonKey,
@@ -3058,23 +3058,25 @@
             body: JSON.stringify(payload)
           });
 
-          // Fallback: If user_id or sender_name column is missing, insert content alone
           if (!res.ok) {
-            const errBody = await res.text();
-            console.warn('POST with user_id/sender_name failed, trying content-only fallback:', errBody);
+            const errText = await res.text();
+            console.error('Supabase message insert error:', res.status, errText);
 
-            await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
-              method: 'POST',
-              headers: {
-                'apikey': supabaseConfig.anonKey,
-                'Authorization': `Bearer ${supabaseConfig.anonKey}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=representation'
-              },
-              body: JSON.stringify({
-                content: content
-              })
-            });
+            // If user_id cause foreign key constraint failure, retry with content only
+            if (payload.user_id) {
+              await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
+                method: 'POST',
+                headers: {
+                  'apikey': supabaseConfig.anonKey,
+                  'Authorization': `Bearer ${supabaseConfig.anonKey}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({ content: content })
+              });
+            }
+          } else {
+            console.log('Successfully saved message to Supabase!');
           }
         }
       } catch (err) {
