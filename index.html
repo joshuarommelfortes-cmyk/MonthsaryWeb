@@ -1728,18 +1728,11 @@
       </div>
     </section>
 
-    <!-- SCREEN 3: HAPPY MONTHSARY & LIVE TIME COUNTER -->
+    <!-- SCREEN 3: LIVE TIME COUNTER -->
     <section id="celebrateScreen" class="screen" aria-live="polite">
       <div class="card">
-        <div class="celebrate-icon">💖</div>
-        <h2 class="heading">Happy Monthsary, Ara! ❤️</h2>
-        
-        <p style="font-size: 1.15rem; font-weight: 600; color: var(--primary-pink); margin-bottom: 6px;">
-          Together since December 7, 2024 ✨
-        </p>
-        <p style="font-size: 0.9rem; color: var(--muted-text); margin-bottom: 16px;">
-          <strong id="displayMonthsCount" style="color: var(--dark-rose);"></strong> of pure love & happiness!
-        </p>
+        <div class="celebrate-icon">⏰💖</div>
+        <div class="eyebrow" style="margin-bottom: 16px;">LIVE TIME TOGETHER</div>
 
         <!-- Live Real-Time Counter Grid -->
         <div class="counter-grid">
@@ -1761,12 +1754,7 @@
           </div>
         </div>
 
-        <p class="description" id="displayPersonalMsg">
-          Thank you for choosing me, Ara. For the laughs, the little moments, and every memory we keep making together. Here's to forever. 🥰
-        </p>
-
-        <div style="margin-top: 15px;">
-          <p style="font-size: 0.9rem; color: var(--muted-text); margin-bottom: 12px;">I prepared a gallery of our memories...</p>
+        <div style="margin-top: 25px;">
           <button id="clickMeBtn" class="btn btn-dark">
             Our Gallery 💝
           </button>
@@ -1979,7 +1967,6 @@
     let dynamicUsersList = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('displayPersonalMsg').textContent = config.personalMessage;
       initAmbientHearts();
       startLiveCounter();
       autoScanPhotosFolder();
@@ -2663,17 +2650,6 @@
       function update() {
         const now = new Date();
         const diff = now - config.startDate;
-
-        let years = now.getFullYear() - config.startDate.getFullYear();
-        let months = now.getMonth() - config.startDate.getMonth();
-        let totalMonths = years * 12 + months;
-        if (now.getDate() < config.startDate.getDate()) {
-          totalMonths--;
-        }
-        totalMonths = Math.max(0, totalMonths);
-
-        let ordinal = getOrdinal(totalMonths);
-        document.getElementById('displayMonthsCount').textContent = `${totalMonths} Months (${ordinal} Monthsary)`;
 
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
