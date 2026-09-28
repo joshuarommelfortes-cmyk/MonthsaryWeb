@@ -916,7 +916,7 @@
       color: var(--white);
       border: 2px solid var(--white);
       box-shadow: 0 8px 25px rgba(255, 79, 134, 0.4);
-      display: flex;
+      display: none; /* Only visible on photo gallery screen */
       align-items: center;
       justify-content: center;
       cursor: pointer;
@@ -1675,9 +1675,9 @@
 
   </main>
 
-  <!-- Floating Chat Toggle Button (Bottom-Right) -->
+  <!-- Floating Chat Toggle Button (Bottom-Right, Gallery Only) -->
   <button id="chatToggleBtn" class="floating-chat-toggle" aria-label="Open Live Chat">
-    <span>☁️</span>
+    <span>💬</span>
     <span class="chat-badge"></span>
   </button>
 
@@ -2472,6 +2472,18 @@
           screen.style.display = 'none';
         }
       });
+
+      // Show floating chat button ONLY on Memories Gallery screen ('photo')
+      const chatBtn = document.getElementById('chatToggleBtn');
+      const chatWin = document.getElementById('chatModal');
+      if (chatBtn) {
+        if (screenKey === 'photo') {
+          chatBtn.style.display = 'flex';
+        } else {
+          chatBtn.style.display = 'none';
+          if (chatWin) chatWin.classList.remove('open');
+        }
+      }
     }
 
     /* ==========================================================================
