@@ -690,9 +690,15 @@
       height: 100%;
       object-fit: cover;
       display: block;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
-      transform: translateZ(0);
+      transform: translate3d(0, 0, 0);
+    }
+
+    .grid-photo-item img.loaded {
+      opacity: 1 !important;
     }
 
     .grid-photo-overlay {
@@ -2012,11 +2018,27 @@
         item.onclick = () => openLightbox(index);
 
         const img = document.createElement('img');
-        img.src = thumbSrc;
         img.alt = `Memory Photo ${index + 1}`;
         img.decoding = 'async';
+
+        if (imagePrecacheMap.has(thumbSrc)) {
+          img.classList.add('loaded');
+          img.src = thumbSrc;
+        } else {
+          img.onload = () => {
+            img.classList.add('loaded');
+            imagePrecacheMap.set(thumbSrc, true);
+          };
+          img.src = thumbSrc;
+          if (img.complete) {
+            img.classList.add('loaded');
+            imagePrecacheMap.set(thumbSrc, true);
+          }
+        }
+
         img.onerror = () => {
           img.src = `https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=400&q=80`;
+          img.classList.add('loaded');
         };
 
         const overlay = document.createElement('div');
