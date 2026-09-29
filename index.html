@@ -858,6 +858,62 @@
       margin-bottom: 15px;
     }
 
+    /* Gallery Preloader & Animated Progress Bar */
+    .gallery-loader-overlay {
+      background: rgba(255, 255, 255, 0.98);
+      border-radius: 20px;
+      padding: 30px 20px;
+      margin: 15px 0;
+      text-align: center;
+      border: 1.5px solid var(--light-pink);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .gallery-loader-title {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      color: var(--dark-rose);
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .gallery-loader-subtitle {
+      font-size: 0.85rem;
+      color: var(--muted-text);
+      margin-bottom: 18px;
+    }
+
+    .gallery-progress-track {
+      width: 100%;
+      max-width: 320px;
+      height: 12px;
+      background: var(--light-pink);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 10px;
+    }
+
+    .gallery-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--rose), var(--primary-pink));
+      border-radius: 999px;
+      transition: width 0.15s ease-out;
+    }
+
+    .gallery-progress-status {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary-pink);
+    }
+
     .photo-grid-scroll-box {
       margin: 15px 0 20px 0;
       padding: 0;
@@ -2473,6 +2529,16 @@
           <div id="uploadStatusMsg" class="upload-status"></div>
         </div>
 
+        <!-- Gallery Animated Preloader Overlay & Progress Bar -->
+        <div id="galleryLoaderOverlay" class="gallery-loader-overlay">
+          <div class="gallery-loader-title">✨ Preloading Memories...</div>
+          <div class="gallery-loader-subtitle">Loading all gallery photos into browser memory for 100% smooth scrolling</div>
+          <div class="gallery-progress-track">
+            <div id="galleryProgressBar" class="gallery-progress-bar"></div>
+          </div>
+          <div id="galleryProgressStatus" class="gallery-progress-status">0% Loaded</div>
+        </div>
+
         <!-- Scrollable Masonry Photo Grid for All Photos in photos/ Folder -->
         <div class="photo-grid-scroll-box">
           <div class="responsive-masonry-grid" id="photoGrid">
@@ -3304,14 +3370,14 @@
 
       // Show dynamic Cloudinary/Supabase photos first, then local photos
       photoList = [...remoteObjects, ...localList];
-      renderPhotoGallery();
 
-      // Silent background pre-cache into browser memory
-      preloadAllGalleryImages();
+      // Preload all gallery images with progress bar before displaying grid
+      await preloadAllGalleryImagesWithProgressBar();
+      renderPhotoGallery();
     }
 
     /* ==========================================================================
-       BACKGROUND IMAGE PRE-CACHE ENGINE (Zero-Lag Memory Caching)
+       BACKGROUND IMAGE PRE-CACHE ENGINE (Zero-Lag Memory Caching & Progress Bar)
        ========================================================================== */
     const imagePrecacheMap = new Map();
 
@@ -3332,11 +3398,27 @@
       });
     }
 
-    async function preloadAllGalleryImages(onProgress) {
+    async function preloadAllGalleryImagesWithProgressBar() {
       if (!photoList || photoList.length === 0) return;
+
+      const loaderOverlay = document.getElementById('galleryLoaderOverlay');
+      const progressBar = document.getElementById('galleryProgressBar');
+      const progressStatus = document.getElementById('galleryProgressStatus');
+      const scrollBox = document.querySelector('.photo-grid-scroll-box');
+
+      if (loaderOverlay) loaderOverlay.style.display = 'flex';
+      if (scrollBox) scrollBox.style.display = 'none';
 
       let loadedCount = 0;
       const total = photoList.length;
+
+      const updateUIProgress = (count) => {
+        const percent = Math.min(100, Math.round((count / total) * 100));
+        if (progressBar) progressBar.style.width = `${percent}%`;
+        if (progressStatus) progressStatus.textContent = `${percent}% Loaded (${count}/${total} Memories)`;
+      };
+
+      updateUIProgress(0);
 
       const promises = photoList.map(item => {
         const fullSrc = typeof item === 'string' ? item : item.src;
@@ -3344,16 +3426,20 @@
 
         return preloadSingleImage(thumbSrc).then(res => {
           loadedCount++;
-          if (onProgress) onProgress(loadedCount, total);
+          updateUIProgress(loadedCount);
           return res;
         });
       });
 
-      // Wait for images to load into cache (with max 3.5s timeout guarantee)
+      // Wait for all images to fully load into memory (with safety fallback timeout)
       await Promise.race([
         Promise.all(promises),
-        new Promise(resolve => setTimeout(resolve, 3500))
+        new Promise(resolve => setTimeout(resolve, 8000))
       ]);
+
+      // All images loaded -> hide loader & reveal photo grid box
+      if (loaderOverlay) loaderOverlay.style.display = 'none';
+      if (scrollBox) scrollBox.style.display = 'block';
     }
 
     // Cloudinary On-The-Fly WebP Thumbnail Optimizer (Fixes scrolling lag & re-downloading)
@@ -3666,20 +3752,8 @@
       }, 900);
     }
 
-    clickMeBtn.addEventListener('click', async () => {
+    clickMeBtn.addEventListener('click', () => {
       triggerConfettiExplosion(20);
-
-      const originalBtnText = clickMeBtn.innerHTML;
-      clickMeBtn.disabled = true;
-      clickMeBtn.innerHTML = '<span>Loading memories... 💖</span>';
-
-      // Preload all gallery thumbnails into browser memory before displaying
-      await preloadAllGalleryImages((loaded, total) => {
-        clickMeBtn.innerHTML = `<span>Loading memories... (${loaded}/${total}) 💖</span>`;
-      });
-
-      clickMeBtn.innerHTML = originalBtnText;
-      clickMeBtn.disabled = false;
       showScreen('photo');
     });
 
