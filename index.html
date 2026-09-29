@@ -124,7 +124,7 @@
       position: relative;
     }
 
-    /* Top Floating Navigation Buttons (Music & Logout) */
+    /* Top Floating Navigation Bar */
     .top-nav-bar {
       position: fixed;
       top: 20px;
@@ -156,27 +156,212 @@
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .logout-btn {
-      display: none;
+    /* Sidebar Menu Toggle Button (Hamburger Icon) */
+    .sidebar-toggle-btn {
+      display: none; /* Shown when user is logged in */
       background: rgba(255, 255, 255, 0.92);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      border: 1px solid var(--rose);
-      padding: 10px 16px;
-      border-radius: 999px;
+      border: 1.5px solid var(--rose);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
       box-shadow: var(--shadow-sm);
-      color: #d32f2f;
-      font-weight: 600;
-      font-size: 0.85rem;
+      color: var(--dark-rose);
+      font-size: 1.25rem;
       cursor: pointer;
       align-items: center;
-      gap: 6px;
+      justify-content: center;
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .logout-btn:hover {
+    .sidebar-toggle-btn:hover {
+      transform: scale(1.08);
+      background: var(--white);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Slide-out Sidebar Menu & Backdrop Overlay */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(84, 38, 56, 0.5);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 2500;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .sidebar-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 300px;
+      max-width: 85vw;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-right: 1.5px solid var(--light-pink);
+      box-shadow: 10px 0 40px rgba(141, 41, 79, 0.2);
+      z-index: 2600;
+      transform: translateX(-100%);
+      transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 20px;
+      box-sizing: border-box;
+    }
+
+    .sidebar-panel.open {
+      transform: translateX(0);
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--light-pink);
+      margin-bottom: 20px;
+    }
+
+    .sidebar-title {
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      color: var(--dark-rose);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sidebar-close-btn {
+      background: #FFEBF2;
+      border: 1px solid var(--light-pink);
+      color: var(--dark-rose);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .sidebar-user-card {
+      background: linear-gradient(135deg, #FFF0F5, #FFEBF2);
+      border: 1.5px solid var(--rose);
+      border-radius: 20px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .sidebar-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary-pink), var(--dark-rose));
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 4px 12px rgba(255, 79, 134, 0.3);
+      flex-shrink: 0;
+    }
+
+    .sidebar-user-details {
+      text-align: left;
+      overflow: hidden;
+    }
+
+    .sidebar-user-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted-text);
+    }
+
+    .sidebar-user-name {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--dark-rose);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .sidebar-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .sidebar-nav-item:hover {
+      background: #FFEBF2;
+      color: var(--primary-pink);
+      border-color: var(--light-pink);
+      transform: translateX(4px);
+    }
+
+    .sidebar-logout-btn {
+      margin-top: auto;
       background: #ffebee;
-      transform: scale(1.05);
+      border: 1.5px solid #ffcdd2;
+      color: #d32f2f;
+      padding: 14px 20px;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      width: 100%;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .sidebar-logout-btn:hover {
+      background: #ffcdd2;
+      transform: translateY(-2px);
       box-shadow: var(--shadow-md);
     }
 
@@ -2067,16 +2252,59 @@
   <!-- Dynamic Confetti Canvas -->
   <div id="confettiCanvas"></div>
 
-  <!-- Top Navigation Controls -->
+  <!-- Top Navigation Bar -->
   <div class="top-nav-bar">
-    <button id="logoutBtn" class="logout-btn" onclick="handleUserLogout()" aria-label="Logout Account">
-      <span>🚪 Logout (<span id="loggedInUserName">User</span>)</span>
+    <button id="sidebarToggleBtn" class="sidebar-toggle-btn" onclick="toggleSidebarMenu()" aria-label="Toggle Sidebar Menu">
+      <span>☰</span>
     </button>
     <button id="musicToggle" class="music-btn" aria-label="Toggle Background Music">
       <span class="disc">🎵</span>
       <span id="musicText">Play Our Song</span>
     </button>
   </div>
+
+  <!-- Slide-out Sidebar Overlay & Panel -->
+  <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebarMenu()"></div>
+  <aside id="sidebarPanel" class="sidebar-panel">
+    <div class="sidebar-header">
+      <div class="sidebar-title">
+        <span>💕 Monthsary Menu</span>
+      </div>
+      <button class="sidebar-close-btn" onclick="closeSidebarMenu()" aria-label="Close Sidebar">✕</button>
+    </div>
+
+    <!-- Logged In User Profile Card -->
+    <div class="sidebar-user-card">
+      <div class="sidebar-avatar">
+        <span id="sidebarAvatarIcon">👤</span>
+      </div>
+      <div class="sidebar-user-details">
+        <div class="sidebar-user-label">Logged In User</div>
+        <div id="sidebarUserName" class="sidebar-user-name">User Account</div>
+      </div>
+    </div>
+
+    <!-- Sidebar Navigation Links -->
+    <nav class="sidebar-nav-list">
+      <button type="button" class="sidebar-nav-item" onclick="closeSidebarMenu(); if (isMonthsaryDay()) showScreen('mail'); else showScreen('celebrate');">
+        <span>⏰</span> Live Love Counter
+      </button>
+      <button type="button" class="sidebar-nav-item" onclick="closeSidebarMenu(); showScreen('photo');">
+        <span>🖼️</span> Memories Gallery
+      </button>
+      <button type="button" class="sidebar-nav-item" onclick="closeSidebarMenu(); toggleChatWindow();">
+        <span>💬</span> Live Messages Chat
+      </button>
+      <button type="button" class="sidebar-nav-item" onclick="closeSidebarMenu(); openAdminModal();">
+        <span>⚙️</span> Super Admin Portal
+      </button>
+    </nav>
+
+    <!-- Sidebar Logout Button -->
+    <button id="sidebarLogoutBtn" class="sidebar-logout-btn" onclick="closeSidebarMenu(); handleUserLogout();">
+      <span>🚪 Logout Account</span>
+    </button>
+  </aside>
   <audio id="bgMusic" loop preload="auto">
     <source src="music.mp3" type="audio/mpeg">
   </audio>
@@ -2457,14 +2685,40 @@
       requestPushNotificationPermission();
     });
 
+    // Sidebar Toggle & Close Navigation Functions
+    function toggleSidebarMenu() {
+      const overlay = document.getElementById('sidebarOverlay');
+      const panel = document.getElementById('sidebarPanel');
+      if (overlay && panel) {
+        overlay.classList.toggle('open');
+        panel.classList.toggle('open');
+      }
+    }
+
+    function closeSidebarMenu() {
+      const overlay = document.getElementById('sidebarOverlay');
+      const panel = document.getElementById('sidebarPanel');
+      if (overlay && panel) {
+        overlay.classList.remove('open');
+        panel.classList.remove('open');
+      }
+    }
+
+    function toggleChatWindow() {
+      const chatModal = document.getElementById('chatModal');
+      if (chatModal) {
+        chatModal.classList.toggle('open');
+      }
+    }
+
     // Update Top Navigation Bar to show active logged-in user name & Logout button
     function updateTopNavUserUI() {
-      const logoutBtn = document.getElementById('logoutBtn');
-      const userNameSpan = document.getElementById('loggedInUserName');
+      const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+      const sidebarUserName = document.getElementById('sidebarUserName');
 
       if (currentLoggedInUser) {
-        if (userNameSpan) userNameSpan.textContent = currentLoggedInUser.name || 'User';
-        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+        if (sidebarUserName) sidebarUserName.textContent = currentLoggedInUser.name || 'User';
+        if (sidebarToggleBtn) sidebarToggleBtn.style.display = 'inline-flex';
         // Auto-skip lock screen if user is already logged in
         if (screens.lock && screens.lock.classList.contains('active')) {
           if (isMonthsaryDay()) {
@@ -2474,7 +2728,8 @@
           }
         }
       } else {
-        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (sidebarToggleBtn) sidebarToggleBtn.style.display = 'none';
+        closeSidebarMenu();
       }
     }
 
