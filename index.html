@@ -2399,6 +2399,22 @@
   <!-- App Container -->
   <main class="app-container">
 
+    <!-- MAINTENANCE BREAK SCREEN -->
+    <section id="maintenanceScreen" class="screen" aria-live="polite">
+      <div class="card" style="text-align: center; padding: 36px 24px;">
+        <div style="font-size: 3.5rem; margin-bottom: 12px; animation: floatEnvelope 3s ease-in-out infinite alternate;">🛠️☕</div>
+        <div class="eyebrow" style="letter-spacing: 2px; color: var(--primary-pink); margin-bottom: 8px;">TEMPORARY BREAK</div>
+        <h1 class="heading" style="font-size: 1.85rem; margin-bottom: 14px;">Website Taking a Little Break</h1>
+        <p class="description" style="font-size: 0.98rem; line-height: 1.6; color: var(--text); max-width: 440px; margin: 0 auto 20px auto;">
+          This website is currently taking a break and is not available right now. 🌸<br>
+          We will be back soon with more love, updates, and precious memories! 💕
+        </p>
+        <div style="background: rgba(255, 216, 229, 0.4); border: 1px dashed var(--rose); border-radius: 16px; padding: 14px 18px; margin-top: 10px; font-size: 0.88rem; color: var(--dark-rose); font-weight: 600;">
+          ✨ Thank you for your patience & love ✨
+        </div>
+      </div>
+    </section>
+
     <!-- START SCREEN: PIN CODE LOCK SCREEN -->
     <section id="lockScreen" class="screen active" aria-live="polite">
       <div class="card">
@@ -2688,6 +2704,7 @@
        1. PERSONALIZATION & SECURITY CONFIGURATION
        ========================================================================== */
     const config = {
+      maintenanceMode: true, // Activated maintenance break screen for visitors
       correctPin: "120724", // Anniversary December 7, 2024
       partnerName: "Ara",
       senderName: "Joshua",
@@ -2722,6 +2739,7 @@
        2. APP INITIALIZATION & DOM REFERENCES
        ========================================================================== */
     const screens = {
+      maintenance: document.getElementById('maintenanceScreen'),
       lock: document.getElementById('lockScreen'),
       mail: document.getElementById('mailScreen'),
       celebrate: document.getElementById('celebrateScreen'),
@@ -2763,7 +2781,13 @@
       startLiveCounter();
       autoScanPhotosFolder();
       fetchLoginUsers();
-      updateTopNavUserUI();
+      
+      if (config.maintenanceMode) {
+        showScreen('maintenance');
+      } else {
+        updateTopNavUserUI();
+      }
+      
       requestPushNotificationPermission();
     });
 
@@ -2795,6 +2819,11 @@
 
     // Update Top Navigation Bar to show active logged-in user name & Logout button
     function updateTopNavUserUI() {
+      if (config.maintenanceMode) {
+        showScreen('maintenance');
+        return;
+      }
+
       const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
       const sidebarUserName = document.getElementById('sidebarUserName');
 
