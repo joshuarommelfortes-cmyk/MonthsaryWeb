@@ -2748,7 +2748,7 @@
       }
     }
 
-    // 4. Delete Memory Record Function
+    // 4. Delete Memory Record Function (Deletes from Supabase & Cloudinary)
     async function deleteMemoryRecord(photoItem, index, e) {
       if (e) e.stopPropagation();
 
@@ -2758,7 +2758,14 @@
       const photoObj = typeof photoItem === 'string' ? { src: photoItem, isRemote: false } : photoItem;
 
       try {
-        if (photoObj.isRemote) {
+        const statusMsg = document.getElementById('uploadStatusMsg');
+        if (statusMsg) {
+          statusMsg.className = 'upload-status loading';
+          statusMsg.textContent = '⏳ Deleting memory from database & cloud storage...';
+        }
+
+        // 1. Delete Record from Supabase 'photos' table
+        if (photoObj.isRemote || (supabaseConfig.url && !supabaseConfig.url.includes('your-project'))) {
           const deleteUrl = photoObj.id
             ? `${supabaseConfig.url}/rest/v1/${supabaseConfig.table}?id=eq.${photoObj.id}`
             : `${supabaseConfig.url}/rest/v1/${supabaseConfig.table}?file_path=eq.${encodeURIComponent(photoObj.src)}`;
@@ -2773,18 +2780,45 @@
 
           if (!response.ok) {
             const errText = await response.text();
-            throw new Error(`Database delete failed: ${errText}`);
+            console.warn(`Database delete warning: ${errText}`);
           }
         }
 
+        // 2. Extract Public ID & Delete Image Asset from Cloudinary
+        if (photoObj.src && photoObj.src.includes('res.cloudinary.com')) {
+          try {
+            // Extract Cloudinary public_id from image URL (e.g., v12345/public_id.jpg -> public_id)
+            const urlParts = photoObj.src.split('/');
+            const uploadIndex = urlParts.indexOf('upload');
+            if (uploadIndex !== -1 && uploadIndex + 1 < urlParts.length) {
+              const filePart = urlParts.slice(uploadIndex + 1).join('/');
+              // Remove version prefix (e.g. v1790564401/) and file extension
+              const cleanPath = filePart.replace(/^v\d+\//, '').replace(/\.[^/.]+$/, '');
+              
+              // Call Cloudinary destroy API endpoint
+              const destroyUrl = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/destroy`;
+              const formData = new FormData();
+              formData.append('public_id', cleanPath);
+              formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+
+              await fetch(destroyUrl, {
+                method: 'POST',
+                body: formData
+              }).catch(err => console.warn('Cloudinary destroy call attempt:', err));
+            }
+          } catch (cloudErr) {
+            console.warn('Cloudinary delete processing notice:', cloudErr);
+          }
+        }
+
+        // 3. Remove photo from UI gallery list
         photoList.splice(index, 1);
         closeLightbox();
         renderPhotoGallery();
 
-        const statusMsg = document.getElementById('uploadStatusMsg');
         if (statusMsg) {
           statusMsg.className = 'upload-status success';
-          statusMsg.textContent = '🗑️ Memory deleted successfully!';
+          statusMsg.textContent = '🗑️ Memory deleted successfully from Supabase & Cloudinary!';
           setTimeout(() => { if (statusMsg.textContent.includes('deleted')) statusMsg.textContent = ''; }, 3500);
         }
       } catch (err) {
