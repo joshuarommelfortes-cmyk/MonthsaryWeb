@@ -891,7 +891,6 @@
       -webkit-tap-highlight-color: transparent;
       transform: translate3d(0, 0, 0);
       -webkit-transform: translate3d(0, 0, 0);
-      will-change: transform;
     }
 
     /* Enable hover scale transitions ONLY on desktop/fine pointers to prevent mobile scroll flickering */
@@ -3386,26 +3385,12 @@
 
         const img = document.createElement('img');
         img.alt = `Memory Photo ${index + 1}`;
+        img.loading = 'lazy';
         img.decoding = 'async';
-
-        if (imagePrecacheMap.has(thumbSrc)) {
-          img.classList.add('loaded');
-          img.src = thumbSrc;
-        } else {
-          img.onload = () => {
-            img.classList.add('loaded');
-            imagePrecacheMap.set(thumbSrc, true);
-          };
-          img.src = thumbSrc;
-          if (img.complete) {
-            img.classList.add('loaded');
-            imagePrecacheMap.set(thumbSrc, true);
-          }
-        }
+        img.src = thumbSrc;
 
         img.onerror = () => {
           img.src = `https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=400&q=80`;
-          img.classList.add('loaded');
         };
 
         const overlay = document.createElement('div');
